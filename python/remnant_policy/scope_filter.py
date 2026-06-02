@@ -68,8 +68,9 @@ class ScopeFilterMiddleware:
         if not detected_scoped_tables:
             return query
 
-        # 构建 scope 过滤条件
-        scope_condition = f"relationship_scope_id = '{scope_id}'"
+        # 构建 scope 过滤条件（使用 ? 参数占位符，防止 SQL 注入）
+        # 注意：此方法返回修改后的 SQL 字符串，调用方需自行传递 scope_id 参数
+        scope_condition = "relationship_scope_id = ?"
 
         # 尝试在 WHERE 子句中添加过滤条件
         where_match = re.search(r'\bWHERE\b', query, re.IGNORECASE)

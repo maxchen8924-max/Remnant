@@ -40,21 +40,21 @@ def _utcnow_iso() -> str:
 
 # ==================== 默认权限继承映射 ====================
 
-# 10 个 permission_key 的基础默认值（无特殊关系类型时使用）
+# 10 个 permission_key 的基础默认值（与白皮书 Ch9.3 一致）
 _BASE_PERMISSIONS: dict[str, str] = {
     "can_query_memory": "allow",
-    "can_browse_original": "allow",
+    "can_browse_original": "ask",
     "can_add_oral_history": "allow",
-    "can_elevate_shared": "deny",
-    "can_export_data": "ask",
+    "can_elevate_shared": "ask",
+    "can_export_data": "deny",
     "can_view_financial": "deny",
-    "can_view_medical": "ask",
+    "can_view_medical": "deny",
     "can_view_intimate": "deny",
-    "can_interact_level3": "deny",
+    "can_interact_level3": "ask",
     "can_delete_scope": "deny",
 }
 
-# 关系类型特定的权限覆盖
+# 关系类型特定的权限覆盖（与白皮书 Ch9.3 一致）
 _RELATIONSHIP_PERMISSION_OVERRIDES: dict[str, dict[str, str]] = {
     "spouse": {
         "can_view_intimate": "ask",
@@ -92,45 +92,41 @@ _RELATIONSHIP_PERMISSION_OVERRIDES: dict[str, dict[str, str]] = {
     "other": {},
 }
 
-# 6 个 prompt policy_key 的默认值
+# 6 个 prompt policy_key 的默认值（与白皮书 Ch9.6 一致）
 _DEFAULT_PROMPT_POLICIES: dict[str, str] = {
-    "address_form": "second_person",
-    "topic_sensitivity": "medium",
-    "response_length": "moderate",
-    "denial_template": "gentle",
-    "grief_limitation": "standard",
-    "memory_mode": "balanced",
+    "address_form": "respectful",
+    "topic_sensitivity": "moderate",
+    "response_length": "standard",
+    "denial_template": "default",
+    "grief_limitation": "moderate",
+    "memory_mode": "archive",
 }
 
 # 关系类型特定的 prompt policy 覆盖
 _RELATIONSHIP_PROMPT_OVERRIDES: dict[str, dict[str, str]] = {
     "spouse": {
-        "address_form": "first_person_intimate",
+        "address_form": "intimate",
         "topic_sensitivity": "high",
-        "grief_limitation": "extended",
+        "grief_limitation": "minimal",
     },
     "child": {
-        "address_form": "respectful",
         "topic_sensitivity": "low",
-        "grief_limitation": "protective",
+        "grief_limitation": "strict",
     },
     "friend": {
-        "address_form": "casual",
-        "topic_sensitivity": "medium",
+        "topic_sensitivity": "moderate",
     },
     "colleague": {
         "address_form": "formal",
-        "topic_sensitivity": "low",
+        "topic_sensitivity": "high",
         "response_length": "brief",
     },
     "sibling": {
-        "address_form": "informal",
-        "topic_sensitivity": "medium",
+        "topic_sensitivity": "moderate",
     },
     "parent": {
-        "address_form": "respectful",
         "topic_sensitivity": "low",
-        "grief_limitation": "protective",
+        "grief_limitation": "strict",
     },
 }
 

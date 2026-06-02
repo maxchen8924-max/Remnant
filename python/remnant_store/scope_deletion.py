@@ -132,16 +132,18 @@ def soft_delete_scope(
 
     # 5. 记录 scope_deletion_log
     deletion_log_id = _generate_uuid()
+    audit_log_ids = json.dumps([audit_id])
     conn.execute(
         """INSERT INTO scope_deletion_log
-        (id, relationship_scope_id, deletion_type, target_tables, affected_rows, redacted, requested_at, completed_at, created_at)
-        VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)""",
+        (id, relationship_scope_id, deletion_type, target_tables, affected_rows, redacted, audit_log_ids, requested_at, completed_at, created_at)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)""",
         (
             deletion_log_id,
             scope_id,
             _DELETION_TYPE_SOFT,
             json.dumps(target_tables),
             affected_rows,
+            audit_log_ids,
             now,
             now,
             now,
@@ -274,16 +276,18 @@ def hard_delete_scope(
 
     # 记录 scope_deletion_log
     deletion_log_id = _generate_uuid()
+    audit_log_ids = json.dumps([audit_id])
     conn.execute(
         """INSERT INTO scope_deletion_log
-        (id, relationship_scope_id, deletion_type, target_tables, affected_rows, redacted, requested_at, completed_at, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)""",
+        (id, relationship_scope_id, deletion_type, target_tables, affected_rows, redacted, audit_log_ids, requested_at, completed_at, created_at)
+        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)""",
         (
             deletion_log_id,
             scope_id,
             _DELETION_TYPE_HARD,
             json.dumps(target_tables),
             affected_rows,
+            audit_log_ids,
             now,
             now,
             now,

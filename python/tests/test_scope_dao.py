@@ -30,14 +30,14 @@ from remnant_store.schema import init_db
 
 _BASE_PERMISSIONS = {
     "can_query_memory": "allow",
-    "can_browse_original": "allow",
+    "can_browse_original": "ask",
     "can_add_oral_history": "allow",
-    "can_elevate_shared": "deny",
-    "can_export_data": "ask",
+    "can_elevate_shared": "ask",
+    "can_export_data": "deny",
     "can_view_financial": "deny",
-    "can_view_medical": "ask",
+    "can_view_medical": "deny",
     "can_view_intimate": "deny",
-    "can_interact_level3": "deny",
+    "can_interact_level3": "ask",
     "can_delete_scope": "deny",
 }
 
@@ -1185,18 +1185,18 @@ class TestScopeFilterSQL:
     """Scope 过滤 SQL 注入测试。"""
 
     def test_apply_scope_filter_with_where(self) -> None:
-        """测试为已有 WHERE 子句的查询添加 scope 过滤。"""
+        """测试为已有 WHERE 子句的查询添加 scope 过滤（参数化查询）。"""
         from remnant_policy.scope_filter import ScopeFilterMiddleware
         middleware = ScopeFilterMiddleware()
 
         query = "SELECT * FROM interaction_session WHERE session_type = 'conversation'"
         filtered = middleware.apply_scope_filter(query, "scope-123")
 
-        assert "relationship_scope_id = 'scope-123'" in filtered
+        assert "relationship_scope_id = ?" in filtered
         assert "AND" in filtered
 
     def test_apply_scope_filter_without_where(self) -> None:
-        """测试为没有 WHERE 子句的查询添加 scope 过滤。"""
+        """测试为没有 WHERE 子句的查询添加 scope 过滤（参数化查询）。"""
         from remnant_policy.scope_filter import ScopeFilterMiddleware
         middleware = ScopeFilterMiddleware()
 
@@ -1204,7 +1204,7 @@ class TestScopeFilterSQL:
         filtered = middleware.apply_scope_filter(query, "scope-123")
 
         assert "WHERE" in filtered
-        assert "relationship_scope_id = 'scope-123'" in filtered
+        assert "relationship_scope_id = ?" in filtered
 
     def test_apply_scope_filter_ignores_global_tables(self) -> None:
         """测试对全局可见表（raw_message 等）不做过滤。"""
@@ -1224,13 +1224,13 @@ class TestScopeFilterSQL:
         assert middleware.apply_scope_filter("  ", "scope-123") == "  "
 
     def test_apply_scope_filter_mixed_tables(self) -> None:
-        """测试混合表查询。"""
+        """测试混合表查询（参数化查询）。"""
         from remnant_policy.scope_filter import ScopeFilterMiddleware
         middleware = ScopeFilterMiddleware()
 
         query = "SELECT * FROM interaction_message"
         filtered = middleware.apply_scope_filter(query, "scope-123")
-        assert "relationship_scope_id = 'scope-123'" in filtered
+        assert "relationship_scope_id = ?" in filtered
 
     def test_scope_filter_check_visibility(
         self, db: sqlite3.Connection, deceased_profile_id: str, source_artifact_id: str
