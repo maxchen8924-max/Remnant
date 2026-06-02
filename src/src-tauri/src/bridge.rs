@@ -19,19 +19,30 @@ pub struct QueryRequest {
     pub stream: bool,
 }
 
-/// Import request body.
+/// Import request body — 对齐 Python remnant_core.models.ImportRequest。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImportRequest {
-    pub source: String,
-    pub format: Option<String>,
+    pub deceased_profile_id: String,
+    pub file_path: String,
+    pub file_type: String,
     pub scope_id: Option<String>,
+    #[serde(default = "default_encoding")]
+    pub encoding: String,
+    #[serde(default)]
+    pub metadata: serde_json::Value,
 }
 
-/// Scope create request body.
+fn default_encoding() -> String {
+    "utf-8".to_string()
+}
+
+/// Scope create request body — 对齐 Python remnant_core.models.ScopeCreateRequest。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScopeCreateRequest {
-    pub name: String,
-    pub description: Option<String>,
+    pub deceased_profile_id: String,
+    pub scope_name: String,
+    pub relationship_type: String, // child / spouse / sibling / parent / friend / colleague / other
+    pub scope_description: Option<String>,
 }
 
 /// Scope delete request body.

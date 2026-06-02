@@ -10,8 +10,7 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import os
 
 import uvicorn
 from fastapi import FastAPI
@@ -26,12 +25,17 @@ from remnant_bridge.routes import data_api, evidence_api, import_api, query_api,
 token_manager = EphemeralTokenManager()
 
 # FastAPI 应用实例
+# 安全考虑：默认关闭 Swagger UI 和 ReDoc（白皮书 Ch11 要求 localhost 访问限制）
+# 开发环境可通过 REMNANT_ENABLE_DOCS=1 环境变量开启
+import os
+_enable_docs = os.environ.get("REMNANT_ENABLE_DOCS", "").lower() in ("1", "true", "yes")
+
 app = FastAPI(
     title=APP_NAME,
     version=APP_VERSION,
     description=APP_DESCRIPTION,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if _enable_docs else None,
+    redoc_url="/redoc" if _enable_docs else None,
 )
 
 # CORS 禁止 — localhost only

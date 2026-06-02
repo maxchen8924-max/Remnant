@@ -201,18 +201,27 @@ class ResponseSchema(BaseModel):
 
 # ==================== 安全模型（Ch10） ====================
 
+class SafetyAction(str, Enum):
+    """安全指令动作枚举 — 对应白皮书 Ch10 SafetyDirective。"""
+    ALLOW = "ALLOW"
+    SOFT_BREAK = "SOFT_BREAK"
+    HARD_BREAK = "HARD_BREAK"
+    COOLDOWN = "COOLDOWN"
+    ESCALATE = "ESCALATE"
+
+
 class SafetyDirective(BaseModel):
-    """安全指令模型（Ch10）。"""
-    event_type: SafetyEventType = Field(description="安全事件类型")
-    severity: SafetySeverity = Field(default=SafetySeverity.WARNING, description="严重程度")
-    action: str = Field(
-        default="LOGGED",
-        description="LOGGED / SESSION_PAUSED / SCOPE_SUSPENDED / USER_NOTIFIED / COOL_DOWN_ENFORCED",
-    )
-    message: str = Field(default="", description="向用户显示的安全提示消息")
-    cooldown_minutes: int | None = Field(default=None, description="冷却期分钟数")
-    scope_suspended: bool = Field(default=False, description="是否暂停了 scope")
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    """安全指令模型 — 严格对齐白皮书 Ch10 SafetyDirective JSON Schema。
+
+    熔断是 policy 层接管，不是动态修改 system prompt。
+    HARD_BREAK 时不进入普通 RAG，安全回复来自模板。
+    """
+    action: SafetyAction = Field(description="指令动作: ALLOW / SOFT_BREAK / HARD_BREAK / COOLDOWN / ESCALATE")
+    reason: str = Field(default="", description="触发原因说明")
+    cooldown_minutes: int = Field(default=0, description="冷却期分钟数（COOLDOWN 时有效）")
+    template_id: str = Field(default="", description="安全回复模板 ID（用于 HARD_BREAK / COOLDOWN / ESCALATE）")
+    allow_llm: bool = Field(default=True, description="是否允许 LLM 参与生成（HARD_BREAK 时为 False）")
+    disconnect_after_response: bool = Field(default=False, description="是否在响应后断开连接（ESCALATE 时可能为 True）")
 
 
 # ==================== API 请求/响应模型 ====================

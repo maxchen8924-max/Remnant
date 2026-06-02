@@ -20,17 +20,22 @@ interface QueryRequest {
   stream?: boolean;
 }
 
-/** Import request parameters */
+/** Import request parameters — 对齐 Python remnant_core.models.ImportRequest */
 interface ImportRequest {
-  source: string;
-  format?: string;
+  deceased_profile_id: string;
+  file_path: string;
+  file_type: string;
   scope_id?: string;
+  encoding?: string;
+  metadata?: Record<string, unknown>;
 }
 
-/** Scope create request parameters */
+/** Scope create request parameters — 对齐 Python remnant_core.models.ScopeCreateRequest */
 interface ScopeCreateRequest {
-  name: string;
-  description?: string;
+  deceased_profile_id: string;
+  scope_name: string;
+  relationship_type: string; // child / spouse / sibling / parent / friend / colleague / other
+  scope_description?: string;
 }
 
 /** Scope delete request parameters */
