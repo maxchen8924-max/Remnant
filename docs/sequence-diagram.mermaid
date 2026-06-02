@@ -1,0 +1,91 @@
+sequenceDiagram
+    participant UI as remnant-ui
+    participant Bridge as remnant-bridge
+    participant ETL as remnant-etl
+    participant Core as remnant-core
+    participant Policy as remnant-policy
+    participant Store as remnant-store
+
+    %% === 数据导入流 ===
+    rect rgb(230, 245, 255)
+        Note over UI, Store: Stage 1: 数据导入流 (Import → Raw Preservation)
+        UI->>Bridge: invoke("bridge_request", {path: "/api/v1/import/start", body: {source_type, file_path}})
+        Bridge->>Store: persist_source_artifact(file_path, SHA-256)
+        Store-->>Bridge: artifact_id
+        Bridge->>ETL: POST /api/v1/etl/run {artifact_id}
+        ETL->>Store: get_source_artifact(artifact_id)
+        Store-->>ETL: artifact
+        ETL->>ETL: parse(artifact) → raw_messages
+        ETL->>Store: persist_raw_messages(raw_messages)
+        Note over Store: raw_message IMMUTABLE, no UPDATE/DELETE
+        Store-->>ETL: OK
+    end
+
+    %% === 数据处理流 ===
+    rect rgb(255, 245, 230)
+        Note over UI, Store: Stage 2: 数据处理流 (Normalize → Clean → Chunk → Annotate → Embed)
+        ETL->>ETL: normalize_messages(raw_messages)
+        ETL->>Store: persist_normalized_messages(normalized)
+        ETL->>ETL: filter_noise(normalized)
+        ETL->>Store: update_message_status(filtered)
+        ETL->>ETL: build_conversation_segments(cleaned)
+        ETL->>ETL: semantic_chunk(segments, embedding_fn)
+        ETL->>ETL: attach_source_spans(chunks)
+        ETL->>ETL: generate_chunk_hash(chunks)
+        ETL->>Store: persist_chunks(chunks) + persist_spans(spans)
+        ETL->>Core: annotate_chunks(chunks) [async]
+        Core-->>Store: persist_annotations(annotations)
+        ETL->>Core: embed_chunks(chunks) [async]
+        Core-->>Store: persist_embedding_refs(embeddings)
+        Store-->>ETL: OK
+        ETL-->>Bridge: {status: "PROCESSED", stats: {...}}
+        Bridge-->>UI: result via Tauri Event
+    end
+
+    %% === 查询流 ===
+    rect rgb(230, 255, 230)
+        Note over UI, Store: Stage 3: 查询流 (Retrieve → Rerank → Evidence Validation)
+        UI->>Bridge: invoke("bridge_sse", {path: "/api/v1/conversation/stream", body: {scope_id, question}})
+        Bridge->>Policy: check_consent(scope_id, "query")
+        Policy-->>Bridge: consent_ok
+        Bridge->>Core: POST /api/v1/core/query {scope_id, question}
+        Core->>Store: vector_search(question_embedding, scope_id, top_k=20)
+        Store-->>Core: vector_results
+        Core->>Store: fts_search(question_tokens, scope_id, top_k=20)
+        Store-->>Core: fts_results
+        Core->>Core: merge_and_dedup(vector_results, fts_results)
+        Core->>Core: rerank(merged_results, question)
+        Core->>Policy: validate_evidence(reranked_results, scope_id)
+        Policy->>Store: check_consent_per_chunk(scope_id, chunk_ids)
+        Store-->>Policy: consent_flags
+        Policy-->>Core: validated_evidence
+        Core->>Store: persist_retrieval_trace(trace)
+        Store-->>Core: trace_id
+    end
+
+    %% === 生成流 ===
+    rect rgb(255, 230, 245)
+        Note over UI, Store: Stage 4: 生成流 (Claim Generation → Response → Audit)
+        Core->>Core: generate_claims(validated_evidence, question)
+        Note over Core: Evidence-first: 每个 Claim 必须绑定 evidence_chunk_ids
+        Core->>Store: persist_claims(claims)
+        Store-->>Core: claim_ids
+        Core->>Core: generate_response(claims)
+        Core->>Store: persist_interaction_message(response)
+        Core->>Policy: audit_log(action="DATA_QUERY", detail={trace_id, claim_ids})
+        Policy->>Store: INSERT INTO audit_log (...)
+        Note over Store: audit_log APPEND ONLY
+        Core-->>Bridge: SSE stream: claim_1, claim_2, ...
+        Bridge-->>UI: Tauri Event: response chunks
+    end
+
+    %% === 安全熔断流 ===
+    rect rgb(255, 230, 230)
+        Note over UI, Store: 安全熔断流 (Anti-dependency)
+        Policy->>Policy: monitor_usage_patterns(scope_id)
+        alt usage exceeds threshold
+            Policy->>Store: persist_safety_event(ANTI_DEPENDENCY_TRIGGER)
+            Policy->>Bridge: notify_safety_event(scope_id, severity)
+            Bridge-->>UI: Tauri Event: safety_warning
+        end
+    end

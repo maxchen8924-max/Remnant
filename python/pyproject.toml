@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "remnant"
+version = "0.1.0"
+description = "Remnant — Local-First Digital Legacy Memory Runtime"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.0",
+    "pycryptodome>=3.20.0",
+    "jieba>=0.42.1",
+]
+
+[project.optional-dependencies]
+sqlcipher = ["sqlcipher3>=0.5.0"]
+vec = ["sqlite-vec>=0.1.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+remnant-server = "remnant_bridge.main:run_server"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "remnant_etl",
+    "remnant_core",
+    "remnant_policy",
+    "remnant_store",
+    "remnant_bridge",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

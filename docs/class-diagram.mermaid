@@ -1,0 +1,262 @@
+classDiagram
+    direction TB
+
+    class DeceasedProfile {
+        +id: str UUID
+        +name: str
+        +display_name: str
+        +birth_date: str
+        +death_date: str
+        +bio: str
+        +avatar_path: str
+        +metadata: dict
+        +created_at: str
+        +updated_at: str
+        +deleted_at: str
+    }
+
+    class RelationshipScope {
+        +id: str UUID
+        +deceased_profile_id: str FK
+        +scope_name: str
+        +relationship_type: str
+        +scope_description: str
+        +encryption_key_hash: str
+        +is_active: bool
+        +created_at: str
+        +updated_at: str
+        +deleted_at: str
+    }
+
+    class DataSubjectConsent {
+        +id: str UUID
+        +deceased_profile_id: str FK
+        +scope_id: str FK
+        +data_category: str
+        +consent_type: str
+        +consent_scope: str
+        +granted_at: str
+        +withdrawn_at: str
+        +expires_at: str
+        +consent_evidence: str
+        +created_at: str
+    }
+
+    class SourceArtifact {
+        +id: str UUID
+        +deceased_profile_id: str FK
+        +file_path: str
+        +file_hash: str SHA256
+        +file_size: int
+        +file_type: str
+        +mime_type: str
+        +encoding: str
+        +parse_status: str
+        +date_range_start: str
+        +date_range_end: str
+        +message_count: int
+        +created_at: str
+    }
+
+    class RawMessage {
+        +id: str UUID
+        +source_artifact_id: str FK
+        +timestamp: str
+        +speaker: str
+        +content: str
+        +content_type: str
+        +parse_status: str
+        +metadata: dict
+        +created_at: str
+    }
+
+    class NormalizedMessage {
+        +id: str UUID
+        +raw_message_id: str FK
+        +source_artifact_id: str FK
+        +timestamp: str
+        +timestamp_confidence: str
+        +speaker_original: str
+        +speaker_normalized: str
+        +person_id: str
+        +content: str
+        +content_type: str
+        +status: str
+        +filter_tags: list
+        +created_at: str
+    }
+
+    class MemoryChunk {
+        +id: str UUID
+        +source_artifact_id: str FK
+        +relationship_scope_id: str FK
+        +chunk_hash: str SHA256
+        +chunk_type: str
+        +content: str
+        +token_count: int
+        +time_range_start: str
+        +time_range_end: str
+        +message_count: int
+        +speaker_count: int
+        +overlap_previous: int
+        +overlap_next: int
+        +status: str
+        +created_at: str
+    }
+
+    class MemoryChunkSpan {
+        +id: str UUID
+        +chunk_id: str FK
+        +normalized_message_id: str FK
+        +char_start: int
+        +char_end: int
+        +source_speaker: str
+        +source_timestamp: str
+    }
+
+    class MemoryAnnotation {
+        +id: str UUID
+        +chunk_id: str FK
+        +annotation_type: str
+        +annotation_value: str
+        +confidence: float
+        +source: str
+        +is_valid: bool
+        +created_at: str
+    }
+
+    class EmbeddingIndexRef {
+        +id: str UUID
+        +chunk_id: str FK
+        +model_name: str
+        +model_version: str
+        +vector_dimension: int
+        +index_backend: str
+        +index_status: str
+        +created_at: str
+    }
+
+    class RetrievalTrace {
+        +id: str UUID
+        +relationship_scope_id: str FK
+        +interaction_session_id: str FK
+        +query_text: str
+        +query_embedding_model: str
+        +fts_results: list
+        +vector_results: list
+        +reranked_results: list
+        +evidence_validated: list
+        +evidence_rejected: list
+        +total_duration_ms: int
+        +created_at: str
+    }
+
+    class ResponseClaim {
+        +id: str UUID
+        +relationship_scope_id: str FK
+        +interaction_session_id: str FK
+        +interaction_message_id: str
+        +claim_text: str
+        +confidence: float
+        +dissent_note: str
+        +evidence_sufficient: bool
+        +model_used: str
+        +model_parameters: dict
+        +status: str
+        +created_at: str
+    }
+
+    class ClaimEvidence {
+        +id: str UUID
+        +claim_id: str FK
+        +chunk_id: str FK
+        +span_id: str FK
+        +evidence_type: str
+        +relevance_score: float
+        +is_direct_quote: bool
+        +excerpt: str
+    }
+
+    class InteractionSession {
+        +id: str UUID
+        +relationship_scope_id: str FK
+        +deceased_profile_id: str FK
+        +session_type: str
+        +started_at: str
+        +ended_at: str
+        +total_messages: int
+        +total_duration_seconds: int
+        +llm_model_used: str
+        +created_at: str
+    }
+
+    class InteractionMessage {
+        +id: str UUID
+        +session_id: str FK
+        +relationship_scope_id: str FK
+        +role: str
+        +content: str
+        +claim_ids: list
+        +retrieval_trace_id: str FK
+        +model_used: str
+        +token_usage: dict
+        +duration_ms: int
+        +safety_flags: list
+        +created_at: str
+    }
+
+    class SafetyEvent {
+        +id: str UUID
+        +relationship_scope_id: str FK
+        +event_type: str
+        +severity: str
+        +description: str
+        +trigger_data: dict
+        +action_taken: str
+        +resolved_at: str
+        +created_at: str
+    }
+
+    class AuditLog {
+        +id: str UUID
+        +relationship_scope_id: str
+        +action: str
+        +actor: str
+        +target_type: str
+        +target_id: str
+        +detail: dict
+        +ip_address: str
+        +redacted: bool
+        +created_at: str
+    }
+
+    %% 核心关系链
+    DeceasedProfile "1" --o "*" RelationshipScope : has
+    DeceasedProfile "1" --o "*" SourceArtifact : owns
+    DeceasedProfile "1" --o "*" InteractionSession : about
+
+    RelationshipScope "1" --o "*" DataSubjectConsent : governs
+    RelationshipScope "1" --o "*" MemoryChunk : scopes
+    RelationshipScope "1" --o "*" InteractionSession : owns
+    RelationshipScope "1" --o "*" InteractionMessage : owns
+    RelationshipScope "1" --o "*" RetrievalTrace : owns
+    RelationshipScope "1" --o "*" ResponseClaim : owns
+    RelationshipScope "1" --o "*" SafetyEvent : recorded_in
+
+    SourceArtifact "1" --o "*" RawMessage : parsed_into
+    SourceArtifact "1" --o "*" NormalizedMessage : normalized_from
+    SourceArtifact "1" --o "*" MemoryChunk : chunked_from
+
+    RawMessage "1" --o "1" NormalizedMessage : normalizes_to
+    NormalizedMessage "1" --o "*" MemoryChunkSpan : referenced_in
+
+    MemoryChunk "1" --o "*" MemoryChunkSpan : has_spans
+    MemoryChunk "1" --o "*" MemoryAnnotation : annotated_by
+    MemoryChunk "1" --o "*" EmbeddingIndexRef : indexed_in
+    MemoryChunk "1" --o "*" ClaimEvidence : cited_in
+
+    InteractionSession "1" --o "*" InteractionMessage : contains
+    InteractionSession "1" --o "*" RetrievalTrace : traced_by
+    InteractionSession "1" --o "*" ResponseClaim : generates
+
+    ResponseClaim "1" --o "*" ClaimEvidence : supported_by

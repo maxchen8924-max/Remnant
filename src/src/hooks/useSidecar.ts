@@ -1,0 +1,277 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+/** Sidecar status returned by invoke_sidecar_status */
+interface SidecarStatus {
+  running: boolean;
+  port: number;
+  base_url: string;
+  crash_restarts: number;
+}
+
+/** Generic JSON value type matching serde_json::Value */
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+/** Query request parameters */
+interface QueryRequest {
+  query: string;
+  scope_id?: string;
+  stream?: boolean;
+}
+
+/** Import request parameters */
+interface ImportRequest {
+  source: string;
+  format?: string;
+  scope_id?: string;
+}
+
+/** Scope create request parameters */
+interface ScopeCreateRequest {
+  name: string;
+  description?: string;
+}
+
+/** Scope delete request parameters */
+interface ScopeDeleteRequest {
+  scope_id: string;
+}
+
+/** Safety evaluate request parameters */
+interface SafetyEvaluateRequest {
+  scope_id: string;
+}
+
+/** Data destroy request parameters */
+interface DataDestroyRequest {
+  scope_id: string;
+  confirm?: boolean;
+}
+
+/**
+ * Custom hook for communicating with the Python sidecar via Tauri IPC.
+ *
+ * Provides typed wrappers for all sidecar API commands and automatically
+ * manages SSE streaming event listeners for query responses.
+ */
+function useSidecar() {
+  const [status, setStatus] = useState<SidecarStatus | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const unlistenRefs = useRef<UnlistenFn[]>([]);
+
+  /** Check sidecar health */
+  const checkHealth = useCallback(async (): Promise<boolean> => {
+    try {
+      const healthy = await invoke<boolean>("invoke_health_check");
+      return healthy;
+    } catch (_e) {
+      return false;
+    }
+  }, []);
+
+  /** Refresh sidecar status */
+  const refreshStatus = useCallback(async (): Promise<void> => {
+    try {
+      const result = await invoke<SidecarStatus>("invoke_sidecar_status");
+      setStatus(result);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
+
+  /** Send a query to the sidecar */
+  const query = useCallback(
+    async (params: QueryRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_query", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Import data into the sidecar */
+  const importData = useCallback(
+    async (params: ImportRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_import", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Create a new scope */
+  const createScope = useCallback(
+    async (params: ScopeCreateRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_create", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Delete a scope */
+  const deleteScope = useCallback(
+    async (params: ScopeDeleteRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_delete", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Evaluate safety for a scope */
+  const evaluateSafety = useCallback(
+    async (params: SafetyEvaluateRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_safety_evaluate", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Destroy data for a scope */
+  const destroyData = useCallback(
+    async (params: DataDestroyRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_data_destroy", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Listen to SSE query streaming events */
+  const listenQueryStream = useCallback(
+    (
+      onChunk: (data: string) => void,
+      onError: (err: string) => void,
+      onDone: () => void
+    ): void => {
+      const setup = async (): Promise<void> => {
+        const chunkUnlisten = await listen<string>(
+          "sidecar:query:chunk",
+          (event) => {
+            onChunk(event.payload);
+          }
+        );
+        const errorUnlisten = await listen<string>(
+          "sidecar:query:error",
+          (event) => {
+            onError(event.payload);
+          }
+        );
+        const doneUnlisten = await listen<string>(
+          "sidecar:query:done",
+          () => {
+            onDone();
+          }
+        );
+        unlistenRefs.current = [chunkUnlisten, errorUnlisten, doneUnlisten];
+      };
+      setup();
+    },
+    []
+  );
+
+  /** Clean up event listeners on unmount */
+  useEffect(() => {
+    return () => {
+      unlistenRefs.current.forEach((unlisten) => unlisten());
+      unlistenRefs.current = [];
+    };
+  }, []);
+
+  return {
+    status,
+    loading,
+    error,
+    checkHealth,
+    refreshStatus,
+    query,
+    importData,
+    createScope,
+    deleteScope,
+    evaluateSafety,
+    destroyData,
+    listenQueryStream,
+  };
+}
+
+export default useSidecar;
+export type {
+  SidecarStatus,
+  JsonValue,
+  QueryRequest,
+  ImportRequest,
+  ScopeCreateRequest,
+  ScopeDeleteRequest,
+  SafetyEvaluateRequest,
+  DataDestroyRequest,
+};

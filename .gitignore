@@ -1,0 +1,35 @@
+# Python
+python/.venv/
+**/__pycache__/
+**/*.pyc
+python/.pytest_cache/
+python/*.db
+python/*.db-wal
+python/*.db-shm
+
+# Node
+src/node_modules/
+src/dist/
+
+# Rust
+src/src-tauri/target/
+
+# macOS
+.DS_Store
+.~*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets
+*.key
+*.pem
+*.env.local
+
+# Data
+*.db
+*.db-wal
+*.db-shm
