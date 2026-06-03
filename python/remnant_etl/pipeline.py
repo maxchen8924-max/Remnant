@@ -30,7 +30,7 @@ from remnant_store.db import get_connection
 from remnant_store.schema import init_db
 
 from remnant_etl.parsers.base import BaseParser, RawMessage, generate_uuid
-from remnant_etl.parsers.wechat_txt import WechatTxtParser
+from remnant_etl.parsers.registry import get_parser
 from remnant_etl.cleaners.filters import (
     MessageStatus,
     NormalizedMessage,
@@ -61,11 +61,6 @@ class ETLPipeline:
         sqlcipher_key: SQLCipher 加密密钥（可选）
         conn: 数据库连接
     """
-
-    # 解析器注册表
-    _PARSER_REGISTRY: dict[str, type[BaseParser]] = {
-        "wechat_txt": WechatTxtParser,
-    }
 
     def __init__(
         self,
@@ -271,13 +266,7 @@ class ETLPipeline:
         Raises:
             ValueError: 不支持的文件类型
         """
-        parser_cls = self._PARSER_REGISTRY.get(file_type)
-        if parser_cls is None:
-            raise ValueError(
-                f"不支持的文件类型: {file_type}。"
-                f"支持的类型: {list(self._PARSER_REGISTRY.keys())}"
-            )
-        return parser_cls()
+        return get_parser(file_type)
 
     def _write_source_artifact(
         self,

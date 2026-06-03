@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "source": {
+    "platform": "generic",
+    "export_format": "json",
+    "exported_at": "2026-06-03T00:00:00Z"
+  },
+  "conversation": {
+    "id": "family-chat",
+    "title": "Family chat",
+    "participants": [
+      {
+        "id": "alice",
+        "display_name": "Alice",
+        "role": "speaker"
+      },
+      {
+        "id": "bob",
+        "display_name": "Bob",
+        "role": "speaker"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "id": "m1",
+      "timestamp": "2024-01-15T10:30:00+08:00",
+      "sender_id": "alice",
+      "sender_name": "Alice",
+      "content": "I want to visit West Lake this weekend.",
+      "content_type": "text",
+      "attachments": [],
+      "metadata": {
+        "platform_message_id": "generic-1"
+      }
+    },
+    {
+      "id": "m2",
+      "timestamp": "2024-01-15T10:31:00+08:00",
+      "sender_id": "bob",
+      "sender_name": "Bob",
+      "content": "That sounds good. Take photos.",
+      "content_type": "text",
+      "attachments": [
+        {
+          "id": "att-1",
+          "kind": "image",
+          "file_name": "lake.jpg",
+          "mime_type": "image/jpeg"
+        }
+      ],
+      "metadata": {}
+    }
+  ]
+}

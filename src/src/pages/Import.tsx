@@ -1,20 +1,18 @@
 /**
- * Import page — data import wizard placeholder.
+ * Import page — data source adapter entry placeholder.
  *
  * Future implementation will support:
- * - WeChat / QQ chat history parsing
- * - Photo metadata extraction
- * - Document ingestion
- * - Manual entry / voice-to-text
+ * - Universal chat JSON
+ * - Regional chat adapters such as WeChat TXT
+ * - Email, document, photo, and manual-note sources
  */
 function Import(): React.ReactElement {
   return (
     <div className="page-import">
       <h2>数据导入</h2>
-      <p className="text-muted">导入向导即将上线，支持微信聊天记录、照片、文档等多种数据源。</p>
+      <p className="text-muted">导入聊天记录、邮件、文档、照片和手动记录等记忆数据源。</p>
       <div className="placeholder-card">
-        <span className="placeholder-icon">📥</span>
-        <span>支持格式：微信聊天记录 · 照片 EXIF · 文档 · 手动录入</span>
+        <span>通用聊天 JSON · WeChat TXT · Email · Documents · Photos</span>
       </div>
     </div>
   );

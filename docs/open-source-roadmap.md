@@ -44,7 +44,7 @@ Poor fits:
 Working or partially working:
 
 - schema creation and SQLite triggers
-- WeChat text ETL pipeline
+- source adapter import pipeline with universal chat JSON and WeChat TXT
 - chunk provenance spans
 - scope-aware chunk visibility
 - FTS/vector retrieval primitives
@@ -76,6 +76,11 @@ Not production-ready:
 
 2. Import credibility
 
+   - Keep source adapters platform-neutral, with WeChat as a regional example
+     rather than the default product assumption.
+   - Publish a canonical `universal_chat_json` fixture so contributors can map
+     WhatsApp, Telegram, Discord, Slack, LINE, KakaoTalk, iMessage, or email
+     exports into the existing ETL flow.
    - Validate file type and path before ETL.
    - Add duplicate import behavior around `source_artifact.file_hash`.
    - Redact or hash stored source paths after import, or make path retention a

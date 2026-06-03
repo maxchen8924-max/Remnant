@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sqlite3
 import tempfile
@@ -486,6 +487,39 @@ class TestETLPipeline:
         conn.commit()
         return pipeline, profile_id
 
+    def _write_universal_chat_json(
+        self,
+        tmp_path: Path,
+        messages: list[dict[str, Any]],
+        version: int = 1,
+    ) -> str:
+        """创建通用聊天 JSON 临时文件。"""
+        file_path = tmp_path / "universal_chat_sample.json"
+        file_path.write_text(
+            json.dumps(
+                {
+                    "version": version,
+                    "source": {
+                        "platform": "generic",
+                        "export_format": "json",
+                        "exported_at": "2026-06-03T00:00:00Z",
+                    },
+                    "conversation": {
+                        "id": "family-chat",
+                        "title": "Family chat",
+                        "participants": [
+                            {"id": "alice", "display_name": "Alice", "role": "speaker"},
+                            {"id": "bob", "display_name": "Bob", "role": "speaker"},
+                        ],
+                    },
+                    "messages": messages,
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return str(file_path)
+
     def test_full_pipeline(self, wechat_txt_file: str) -> None:
         """测试完整 ETL 管道。"""
         pipeline, profile_id = self._make_pipeline()
@@ -713,6 +747,154 @@ class TestETLPipeline:
 
         # 应返回错误信息
         assert len(result["errors"]) > 0 or result["raw_count"] == 0
+
+    def test_supported_file_types_include_global_and_regional_adapters(self) -> None:
+        """支持类型应包含全球通用格式和现有区域格式。"""
+        from remnant_etl.parsers.registry import list_supported_file_types
+
+        supported = list_supported_file_types()
+
+        assert "universal_chat_json" in supported
+        assert "wechat_txt" in supported
+
+    def test_universal_chat_json_pipeline_imports_messages(self, tmp_path: Path) -> None:
+        """通用聊天 JSON 应能进入现有 ETL 管道。"""
+        file_path = self._write_universal_chat_json(
+            tmp_path,
+            [
+                {
+                    "id": "m1",
+                    "timestamp": "2024-01-15T10:30:00+08:00",
+                    "sender_id": "alice",
+                    "sender_name": "Alice",
+                    "content": "I want to visit West Lake this weekend.",
+                    "content_type": "text",
+                    "attachments": [],
+                    "metadata": {"platform_message_id": "generic-1"},
+                },
+                {
+                    "id": "m2",
+                    "timestamp": "2024-01-15T10:31:00+08:00",
+                    "sender_id": "bob",
+                    "sender_name": "Bob",
+                    "content": "That sounds good. Take photos.",
+                    "content_type": "text",
+                    "attachments": [],
+                    "metadata": {},
+                },
+            ],
+        )
+        pipeline, profile_id = self._make_pipeline()
+
+        result = pipeline.run(
+            file_path=file_path,
+            file_type="universal_chat_json",
+            deceased_profile_id=profile_id,
+        )
+
+        assert result["errors"] == []
+        assert result["raw_count"] == 2
+        assert result["chunk_count"] > 0
+
+        conn = pipeline._get_conn()
+        rows = conn.execute(
+            "SELECT speaker, content FROM raw_message WHERE source_artifact_id = ? ORDER BY timestamp",
+            (result["artifact_id"],),
+        ).fetchall()
+        assert [row["speaker"] for row in rows] == ["Alice", "Bob"]
+        assert "West Lake" in rows[0]["content"]
+
+    def test_universal_chat_json_preserves_attachment_metadata(self, tmp_path: Path) -> None:
+        """附件和平台字段应保留在 raw_message.metadata 中。"""
+        file_path = self._write_universal_chat_json(
+            tmp_path,
+            [
+                {
+                    "id": "m-photo",
+                    "timestamp": "2024-01-15T10:30:00Z",
+                    "sender_id": "alice",
+                    "sender_name": "Alice",
+                    "content": "[photo]",
+                    "content_type": "image",
+                    "attachments": [
+                        {
+                            "id": "att-1",
+                            "kind": "image",
+                            "file_name": "lake.jpg",
+                            "mime_type": "image/jpeg",
+                        }
+                    ],
+                    "metadata": {"album": "trip"},
+                }
+            ],
+        )
+        pipeline, profile_id = self._make_pipeline()
+
+        result = pipeline.run(
+            file_path=file_path,
+            file_type="universal_chat_json",
+            deceased_profile_id=profile_id,
+        )
+
+        assert result["errors"] == []
+        conn = pipeline._get_conn()
+        row = conn.execute(
+            "SELECT metadata FROM raw_message WHERE source_artifact_id = ?",
+            (result["artifact_id"],),
+        ).fetchone()
+        metadata = json.loads(row["metadata"])
+        assert metadata["canonical_message_id"] == "m-photo"
+        assert metadata["sender_id"] == "alice"
+        assert metadata["attachments"][0]["file_name"] == "lake.jpg"
+        assert metadata["source"]["platform"] == "generic"
+        assert metadata["conversation"]["title"] == "Family chat"
+
+    def test_universal_chat_json_invalid_schema_version_reports_error(self, tmp_path: Path) -> None:
+        """不支持的 schema version 应给出清晰错误。"""
+        file_path = self._write_universal_chat_json(
+            tmp_path,
+            [
+                {
+                    "id": "m1",
+                    "sender_name": "Alice",
+                    "content": "hello",
+                }
+            ],
+            version=99,
+        )
+        pipeline, profile_id = self._make_pipeline()
+
+        result = pipeline.run(
+            file_path=file_path,
+            file_type="universal_chat_json",
+            deceased_profile_id=profile_id,
+        )
+
+        assert result["raw_count"] == 0
+        assert "Unsupported universal_chat_json schema version: 99" in result["errors"][0]
+
+    def test_universal_chat_json_missing_required_fields_reports_error(self, tmp_path: Path) -> None:
+        """缺少 sender/content 等必填字段时应失败而不是伪造消息。"""
+        file_path = self._write_universal_chat_json(
+            tmp_path,
+            [
+                {
+                    "id": "m1",
+                    "timestamp": "2024-01-15T10:30:00Z",
+                    "content": "missing sender",
+                }
+            ],
+        )
+        pipeline, profile_id = self._make_pipeline()
+
+        result = pipeline.run(
+            file_path=file_path,
+            file_type="universal_chat_json",
+            deceased_profile_id=profile_id,
+        )
+
+        assert result["raw_count"] == 0
+        assert "messages[0].sender_name is required" in result["errors"][0]
 
 
 # ==================== 数据库集成测试 ====================

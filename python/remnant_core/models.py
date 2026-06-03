@@ -267,7 +267,7 @@ class ImportRequest(BaseModel):
     """数据导入请求模型。"""
     deceased_profile_id: str = Field(description="逝者档案 ID")
     file_path: str = Field(description="原始文件路径")
-    file_type: str = Field(description="文件类型: wechat_txt / wechat_db / email_mbox / ...")
+    file_type: str = Field(description="文件类型: universal_chat_json / wechat_txt / email_mbox / ...")
     scope_id: str | None = Field(default=None, description="关联的关系作用域 ID（可选）")
     encoding: str = Field(default="utf-8", description="文件编码")
     metadata: dict[str, Any] = Field(default_factory=dict, description="扩展元数据")

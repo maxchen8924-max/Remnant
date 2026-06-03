@@ -17,8 +17,8 @@ What is already useful:
 
 - SQLite schema for immutable raw messages, derived chunks, scopes, evidence,
   retrieval traces, safety events, consent records, and deletion logs.
-- ETL path for WeChat text exports: parse, normalize, filter, chunk, attach
-  spans, hash, and persist.
+- Source adapter import path for universal chat JSON and WeChat text exports:
+  parse, normalize, filter, chunk, attach spans, hash, and persist.
 - Scope-aware FTS/vector retrieval primitives and retrieval trace logging.
 - Python sidecar bridge with localhost binding, ephemeral token auth, import,
   query, scope, safety, evidence, and data-destroy routes.
@@ -94,8 +94,8 @@ cd python
 ```
 
 The demo creates a temporary SQLite database, seeds a sample profile/scope,
-imports a sample WeChat export, runs a scoped evidence query, performs scoped
-soft deletion, and verifies that immutable raw messages are still intact.
+imports a sample chat export, runs a scoped evidence query, performs scoped soft
+deletion, and verifies that immutable raw messages are still intact.
 
 Run the sidecar:
 
