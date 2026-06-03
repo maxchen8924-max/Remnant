@@ -130,7 +130,27 @@ def soft_delete_scope(
         except sqlite3.OperationalError:
             pass  # 表可能没有 deleted_at 列
 
-    # 5. 记录 scope_deletion_log
+    # 5. 记录 audit_log（必须先于 deletion_log，因为后者引用 audit_id）
+    audit_id = _generate_uuid()
+    conn.execute(
+        """INSERT INTO audit_log
+        (id, action, actor, target_type, target_id, detail, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            audit_id,
+            "SCOPE_SOFT_DELETE",
+            actor,
+            "relationship_scope",
+            scope_id,
+            json.dumps({
+                "reason": "scope_soft_delete",
+                "scope_name": scope_row["scope_name"],
+            }),
+            now,
+        ),
+    )
+
+    # 6. 记录 scope_deletion_log
     deletion_log_id = _generate_uuid()
     audit_log_ids = json.dumps([audit_id])
     conn.execute(
@@ -146,27 +166,6 @@ def soft_delete_scope(
             audit_log_ids,
             now,
             now,
-            now,
-        ),
-    )
-
-    # 6. 记录 audit_log
-    audit_id = _generate_uuid()
-    conn.execute(
-        """INSERT INTO audit_log
-        (id, action, actor, target_type, target_id, detail, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (
-            audit_id,
-            "SCOPE_SOFT_DELETE",
-            actor,
-            "relationship_scope",
-            scope_id,
-            json.dumps({
-                "reason": "scope_soft_delete",
-                "scope_name": scope_row["scope_name"],
-                "deletion_log_id": deletion_log_id,
-            }),
             now,
         ),
     )
@@ -294,6 +293,9 @@ def hard_delete_scope(
         ),
     )
 
+    # 禁用外键约束以允许物理删除（审计日志和删除日志需要保留）
+    conn.execute("PRAGMA foreign_keys = OFF")
+
     # 物理删除 scoped 关联数据（按依赖顺序）
     physical_delete_tables = [
         "claim_evidence",
@@ -336,8 +338,17 @@ def hard_delete_scope(
     except sqlite3.OperationalError:
         pass
 
+    # 删除 scope_deletion_log（审计日志保留，但删除日志的 FK 会阻止删除 relationship_scope）
+    try:
+        conn.execute("DELETE FROM scope_deletion_log WHERE relationship_scope_id = ?", (scope_id,))
+    except sqlite3.OperationalError:
+        pass
+
     # 删除 relationship_scope 本身
     conn.execute("DELETE FROM relationship_scope WHERE id = ?", (scope_id,))
+
+    # 重新启用外键约束
+    conn.execute("PRAGMA foreign_keys = ON")
 
     conn.commit()
 

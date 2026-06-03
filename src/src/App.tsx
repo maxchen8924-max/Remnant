@@ -6,7 +6,8 @@ import Import from "./pages/Import";
 import Timeline from "./pages/Timeline";
 import Query from "./pages/Query";
 import Evidence from "./pages/Evidence";
-import Settings from "./pages/Settings";
+import ScopeManage from "./pages/ScopeManage";
+import ScopeCreate from "./pages/ScopeCreate";
 import Destroy from "./pages/Destroy";
 
 /**
@@ -29,7 +30,8 @@ function App(): React.ReactElement {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/query" element={<Query />} />
               <Route path="/evidence" element={<Evidence />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<ScopeManage />} />
+              <Route path="/scope/create" element={<ScopeCreate />} />
               <Route path="/destroy" element={<Destroy />} />
             </Routes>
           </main>

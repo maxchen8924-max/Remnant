@@ -342,6 +342,269 @@ pub async fn invoke_data_destroy(
     Ok(json)
 }
 
+/// Lists all scopes for a given deceased profile.
+#[tauri::command]
+pub async fn invoke_scope_list(
+    state: State<'_, SidecarState>,
+    deceased_profile_id: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/scope/list/{}",
+        base_url, deceased_profile_id
+    );
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Scope list request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Scope list failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Gets scope detail by ID.
+#[tauri::command]
+pub async fn invoke_scope_detail(
+    state: State<'_, SidecarState>,
+    scope_id: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!("{}/api/v1/scope/{}", base_url, scope_id);
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Scope detail request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Scope detail failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Gets scope permissions by ID.
+#[tauri::command]
+pub async fn invoke_scope_permissions(
+    state: State<'_, SidecarState>,
+    scope_id: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/scope/{}/permissions",
+        base_url, scope_id
+    );
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Scope permissions request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!(
+            "Scope permissions failed ({}): {}",
+            status, body
+        ));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Updates a single permission for a scope.
+#[tauri::command]
+pub async fn invoke_scope_set_permission(
+    state: State<'_, SidecarState>,
+    scope_id: String,
+    permission_key: String,
+    permission_value: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/scope/{}/permissions/{}",
+        base_url, scope_id, permission_key
+    );
+
+    let response = client
+        .put(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .query(&[("permission_value", &permission_value)])
+        .send()
+        .await
+        .map_err(|e| format!("Set permission request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Set permission failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Gets chunk visibility for a scope.
+#[tauri::command]
+pub async fn invoke_scope_visibility(
+    state: State<'_, SidecarState>,
+    scope_id: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/scope/{}/visibility",
+        base_url, scope_id
+    );
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Scope visibility request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!(
+            "Scope visibility failed ({}): {}",
+            status, body
+        ));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Upgrades chunk visibility for a scope.
+#[tauri::command]
+pub async fn invoke_scope_visibility_upgrade(
+    state: State<'_, SidecarState>,
+    scope_id: String,
+    chunk_id: String,
+    target_visibility: String,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/scope/{}/visibility/upgrade",
+        base_url, scope_id
+    );
+
+    let body = serde_json::json!({
+        "chunk_id": chunk_id,
+        "target_visibility": target_visibility,
+    });
+
+    let response = client
+        .post(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Visibility upgrade request failed: {}", e))?;
+
+    let status = response.status();
+    let resp_body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!(
+            "Visibility upgrade failed ({}): {}",
+            status, resp_body
+        ));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({ "raw": resp_body }));
+
+    Ok(json)
+}
+
 /// Checks the health of the Python sidecar.
 #[tauri::command]
 pub async fn invoke_health_check(state: State<'_, SidecarState>) -> Result<bool, String> {

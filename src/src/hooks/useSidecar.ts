@@ -66,7 +66,7 @@ function useSidecar() {
   const [error, setError] = useState<string | null>(null);
   const unlistenRefs = useRef<UnlistenFn[]>([]);
 
-  /** Check sidecar health */
+  /** Get sidecar health (re-export for convenience) */
   const checkHealth = useCallback(async (): Promise<boolean> => {
     try {
       const healthy = await invoke<boolean>("invoke_health_check");
@@ -253,6 +253,143 @@ function useSidecar() {
     };
   }, []);
 
+  /** List all scopes for a deceased profile */
+  const listScopes = useCallback(
+    async (deceasedProfileId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_list", {
+          deceasedProfileId,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Get scope detail by ID */
+  const getScopeDetail = useCallback(
+    async (scopeId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_detail", {
+          scopeId,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Get scope permissions */
+  const getScopePermissions = useCallback(
+    async (scopeId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_permissions", {
+          scopeId,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Set a single permission for a scope */
+  const setScopePermission = useCallback(
+    async (
+      scopeId: string,
+      permissionKey: string,
+      permissionValue: string
+    ): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_set_permission", {
+          scopeId,
+          permissionKey,
+          permissionValue,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Get chunk visibility for a scope */
+  const getScopeVisibility = useCallback(
+    async (scopeId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_scope_visibility", {
+          scopeId,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Upgrade chunk visibility */
+  const upgradeScopeVisibility = useCallback(
+    async (
+      scopeId: string,
+      chunkId: string,
+      targetVisibility: string
+    ): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>(
+          "invoke_scope_visibility_upgrade",
+          { scopeId, chunkId, targetVisibility }
+        );
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
   return {
     status,
     loading,
@@ -266,6 +403,12 @@ function useSidecar() {
     evaluateSafety,
     destroyData,
     listenQueryStream,
+    listScopes,
+    getScopeDetail,
+    getScopePermissions,
+    setScopePermission,
+    getScopeVisibility,
+    upgradeScopeVisibility,
   };
 }
 

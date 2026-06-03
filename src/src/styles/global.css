@@ -272,7 +272,9 @@ body {
 .page-query,
 .page-evidence,
 .page-settings,
-.page-destroy {
+.page-destroy,
+.page-scope-create,
+.page-scope-manage {
   animation: fadeIn var(--transition-normal);
 }
 
@@ -281,7 +283,9 @@ body {
 .page-query h2,
 .page-evidence h2,
 .page-settings h2,
-.page-destroy h2 {
+.page-destroy h2,
+.page-scope-create h2,
+.page-scope-manage h2 {
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text);
@@ -345,4 +349,816 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+/* ============================================================================
+   Scope Management & Visibility Styles
+   ============================================================================ */
+
+/* Form Elements */
+.scope-form {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.scope-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.scope-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.scope-required {
+  color: var(--color-danger);
+}
+
+.scope-optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.scope-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.scope-input,
+.scope-select,
+.scope-textarea {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast);
+}
+
+.scope-input:focus,
+.scope-select:focus,
+.scope-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.scope-input::placeholder,
+.scope-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.scope-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.scope-select {
+  cursor: pointer;
+}
+
+.scope-select-sm {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-border);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}
+
+.btn-danger-sm {
+  background-color: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-danger-sm:hover {
+  background-color: var(--color-danger);
+  color: #ffffff;
+}
+
+.btn-secondary-sm {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-secondary-sm:hover {
+  background-color: var(--color-border);
+}
+
+/* Scope Sections */
+.scope-section {
+  margin-top: var(--spacing-lg);
+}
+
+.scope-form-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.scope-form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-top: var(--spacing-md);
+}
+
+/* Messages */
+.scope-success-message {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: var(--color-success);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.scope-error-message {
+  background-color: rgba(255, 77, 106, 0.15);
+  color: var(--color-danger);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  border: 1px solid rgba(255, 77, 106, 0.3);
+}
+
+/* Tables */
+.scope-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md);
+  font-size: 13px;
+}
+
+.scope-table th {
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scope-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.scope-table tr:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.scope-table tr.scope-row-selected {
+  background-color: rgba(108, 140, 255, 0.1);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* Status Badges */
+.scope-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.scope-status-active {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--color-success);
+}
+
+.scope-status-inactive {
+  background-color: rgba(255, 77, 106, 0.2);
+  color: var(--color-danger);
+}
+
+/* Permission Badges */
+.scope-perm {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.scope-perm-allow {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--color-success);
+}
+
+.scope-perm-deny {
+  background-color: rgba(255, 77, 106, 0.2);
+  color: var(--color-danger);
+}
+
+.scope-perm-ask {
+  background-color: rgba(255, 167, 38, 0.2);
+  color: var(--color-warning);
+}
+
+/* Danger Zone */
+.scope-danger-zone {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background-color: rgba(255, 77, 106, 0.05);
+}
+
+.scope-danger-zone h4 {
+  color: var(--color-danger);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Modal Overlay */
+.scope-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.scope-modal {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  max-width: 440px;
+  width: 90%;
+}
+
+.scope-modal h3 {
+  margin-bottom: var(--spacing-md);
+}
+
+.scope-modal p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Confirm Box */
+.scope-confirm-box {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.scope-confirm-box p {
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Chunk Visibility */
+.chunk-visibility {
+  margin-top: var(--spacing-lg);
+}
+
+.chunk-visibility h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+}
+
+.chunk-content-preview {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   M4b 新增 — Scope 创建/管理/可见性 样式
+   ============================================================================ */
+
+/* 通用表格 */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md);
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.table tr:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.table tr.scope-row-selected {
+  background-color: rgba(108, 140, 255, 0.1);
+}
+
+.table-compact th,
+.table-compact td {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 12px;
+}
+
+/* 表单组 */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.form-required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.form-optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast);
+  width: 100%;
+  max-width: 480px;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.form-input-error {
+  border-color: var(--color-danger);
+}
+
+.form-error {
+  color: var(--color-danger);
+  font-size: 12px;
+}
+
+.form-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+.form-select-small {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+/* Scope 创建页 */
+.page-scope-create {
+  animation: fadeIn var(--transition-normal);
+}
+
+.scope-create-form {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.scope-create-success {
+  background-color: rgba(76, 175, 80, 0.15);
+  color: var(--color-success);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.scope-create-error {
+  background-color: rgba(255, 77, 106, 0.15);
+  color: var(--color-danger);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  border: 1px solid rgba(255, 77, 106, 0.3);
+}
+
+/* 权限预览表格 */
+.scope-permission-preview {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.scope-permission-preview h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
+}
+
+.perm-overridden {
+  background-color: rgba(108, 140, 255, 0.08);
+}
+
+.perm-value {
+  font-weight: 600;
+}
+
+.perm-override-badge {
+  display: inline-block;
+  margin-left: var(--spacing-xs);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  background-color: rgba(108, 140, 255, 0.2);
+  color: var(--color-primary);
+}
+
+.perm-badge {
+  font-weight: 600;
+}
+
+.perm-allow {
+  color: var(--color-success);
+}
+
+.perm-deny {
+  color: var(--color-danger);
+}
+
+.perm-ask {
+  color: var(--color-warning);
+}
+
+/* Scope 管理页 */
+.page-scope-manage {
+  animation: fadeIn var(--transition-normal);
+}
+
+.scope-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.scope-section-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.scope-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.scope-profile-input {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-top: var(--spacing-sm);
+}
+
+.scope-profile-input .form-input {
+  flex: 1;
+  max-width: 400px;
+}
+
+/* 详情网格 */
+.scope-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.scope-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scope-detail-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scope-detail-value {
+  font-size: 14px;
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+/* 安全策略网格 */
+.safety-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.safety-policy-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.safety-policy-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.safety-policy-value {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* 删除操作区域 */
+.scope-delete-section {
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  background-color: rgba(255, 77, 106, 0.05);
+}
+
+.scope-delete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+}
+
+.scope-delete-option p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+.scope-delete-option p strong {
+  color: var(--color-danger);
+}
+
+.scope-confirm-dialog {
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.scope-confirm-danger {
+  border-color: var(--color-danger);
+  background-color: rgba(255, 77, 106, 0.1);
+}
+
+.scope-confirm-text {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* 按钮变体 */
+.btn-warning {
+  background-color: var(--color-warning);
+  color: #000000;
+}
+
+.btn-warning:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-small {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.btn-outline-warning {
+  background-color: transparent;
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.btn-outline-warning:hover:not(:disabled) {
+  background-color: var(--color-warning);
+  color: #000000;
+}
+
+/* 可见性徽章 */
+.visibility-badge {
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+/* Chunk 可见性 */
+.chunk-visibility-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.chunk-visibility-header h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.chunk-visibility-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.chunk-content-cell {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chunk-confirm-upgrade {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+}
+
+.chunk-confirm-upgrade p {
+  margin: 0;
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+/* Status 徽章 */
+.status-active {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: rgba(76, 175, 80, 0.2);
+  color: var(--color-success);
+}
+
+.status-inactive {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: rgba(255, 77, 106, 0.2);
+  color: var(--color-danger);
 }
