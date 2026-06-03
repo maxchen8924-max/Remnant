@@ -83,6 +83,9 @@ class SafetyEventType(str, Enum):
     LATE_NIGHT_USAGE = "LATE_NIGHT_USAGE"
     EMOTIONAL_DISTRESS = "EMOTIONAL_DISTRESS"
     EXCESSIVE_USAGE = "EXCESSIVE_USAGE"
+    CRISIS_EXPRESSION = "CRISIS_EXPRESSION"
+    REALITY_SUBSTITUTION = "REALITY_SUBSTITUTION"
+    COMMITMENT_REQUEST = "COMMITMENT_REQUEST"
 
 
 class EvidenceType(str, Enum):
@@ -222,6 +225,19 @@ class SafetyDirective(BaseModel):
     template_id: str = Field(default="", description="安全回复模板 ID（用于 HARD_BREAK / COOLDOWN / ESCALATE）")
     allow_llm: bool = Field(default=True, description="是否允许 LLM 参与生成（HARD_BREAK 时为 False）")
     disconnect_after_response: bool = Field(default=False, description="是否在响应后断开连接（ESCALATE 时可能为 True）")
+    safety_event_data: dict[str, Any] = Field(default_factory=dict, description="安全事件附加数据（用于记录到 safety_event 表）")
+
+
+class SafetyIndicators(BaseModel):
+    """8项安全指标 — 对应白皮书 Ch10.2。"""
+    session_duration_minutes: float = Field(description="当前会话时长(分钟)")
+    sessions_today_count: int = Field(description="今日该scope的会话数")
+    late_night_count: int = Field(description="最近7天深夜会话数(22:00-06:00)")
+    emotional_risk_score: float = Field(default=0.0, ge=0.0, le=1.0, description="情绪风险分0-1")
+    dependency_phrases: int = Field(default=0, description="依赖性表达次数")
+    farewell_refusal_count: int = Field(default=0, description="拒绝结束对话次数")
+    user_age_flag: str = Field(default="adult", description="minor/senior/adult")
+    recent_safety_events: int = Field(default=0, description="近7天安全事件数")
 
 
 # ==================== API 请求/响应模型 ====================
