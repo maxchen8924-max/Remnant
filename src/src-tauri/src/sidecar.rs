@@ -34,6 +34,8 @@ const STARTUP_TIMEOUT_SECS: u64 = 30;
 /// - Graceful shutdown: SIGTERM → wait 5s → SIGKILL
 /// - Ephemeral token: randomly generated, passed to Python via env var
 pub struct SidecarManager {
+    /// Python executable used to start the sidecar.
+    python_bin: String,
     /// Port the sidecar listens on.
     port: u16,
     /// Ephemeral auth token for sidecar communication.
@@ -55,6 +57,10 @@ impl SidecarManager {
             .unwrap_or(DEFAULT_PORT);
 
         let auth_token = generate_ephemeral_token();
+        let python_bin = std::env::var("REMNANT_PYTHON_BIN")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "python3".to_string());
 
         let http_client = Client::builder()
             .timeout(Duration::from_secs(30))
@@ -62,6 +68,7 @@ impl SidecarManager {
             .unwrap_or_else(|_| Client::new());
 
         Self {
+            python_bin,
             port,
             auth_token,
             child: None,
@@ -86,7 +93,7 @@ impl SidecarManager {
             &self.auth_token[..8]
         );
 
-        let child = Command::new("python3")
+        let child = Command::new(&self.python_bin)
             .arg("-m")
             .arg("remnant_bridge")
             .env("REMNANT_SIDECAR_PORT", self.port.to_string())
@@ -199,6 +206,11 @@ impl SidecarManager {
         self.port
     }
 
+    /// Returns the Python executable used to start the sidecar.
+    pub fn get_python_bin(&self) -> &str {
+        &self.python_bin
+    }
+
     /// Returns the number of crash restarts attempted so far.
     pub fn get_crash_restarts(&self) -> u32 {
         self.crash_restarts
@@ -279,4 +291,20 @@ pub type SidecarState = Arc<Mutex<SidecarManager>>;
 /// Creates a new SidecarState for use with Tauri's .manage() API.
 pub fn create_sidecar_state() -> SidecarState {
     Arc::new(Mutex::new(SidecarManager::new()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SidecarManager;
+
+    #[test]
+    fn sidecar_manager_uses_configured_python_binary() {
+        std::env::set_var("REMNANT_PYTHON_BIN", "python3.12");
+
+        let manager = SidecarManager::new();
+
+        assert_eq!(manager.get_python_bin(), "python3.12");
+
+        std::env::remove_var("REMNANT_PYTHON_BIN");
+    }
 }

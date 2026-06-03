@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "remnant"
 version = "0.1.0"
 description = "Remnant — Local-First Digital Legacy Memory Runtime"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 license = "MIT"
 dependencies = [
     "fastapi>=0.110.0",

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException
 
+from remnant_bridge.config import DEFAULT_DB_PATH
+from remnant_bridge.runtime import run_import_pipeline
 from remnant_core.models import ImportRequest, ImportResponse
 
 router = APIRouter(prefix="/api/v1", tags=["import"])
@@ -15,11 +17,10 @@ async def import_data(request: ImportRequest) -> ImportResponse:
 
     接受文件路径和类型，触发 ETL 管道处理。
     """
-    # M1 阶段实现 ETL 管道调用
-    return ImportResponse(
-        artifact_id="",
-        file_hash="",
-        message_count=0,
-        chunk_count=0,
-        parse_status="PENDING",
-    )
+    try:
+        result = run_import_pipeline(DEFAULT_DB_PATH, request)
+        return ImportResponse(**result)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

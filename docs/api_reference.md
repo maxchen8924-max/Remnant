@@ -7,7 +7,9 @@
 ## 概述
 
 - **Base URL**: `http://127.0.0.1:18731`
-- **认证**: 所有请求必须携带 `X-Remnant-Token` header
+- **认证**: 所有请求必须携带本地 sidecar token。Rust bridge 默认使用
+  `Authorization: Bearer <token>`；`X-Remnant-Token: <token>` 作为白皮书兼容
+  header 仍被接受。
 - **响应格式**: `{code, data, message}`
 - **时间戳**: ISO 8601 UTC
 - **流式接口**: SSE (`text/event-stream`)

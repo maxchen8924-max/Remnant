@@ -413,13 +413,8 @@ def verify_raw_data_integrity(
         "SELECT COUNT(*) as cnt FROM source_artifact WHERE deceased_profile_id = ?",
         (deceased_profile_id,),
     )
-    sa_count = sa_cursor.fetchone()["cnt"] if sa_cursor.fetchone() or True else 0
-    # 重新查询因为 fetchone 消耗了结果
-    sa_cursor = conn.execute(
-        "SELECT COUNT(*) as cnt FROM source_artifact WHERE deceased_profile_id = ?",
-        (deceased_profile_id,),
-    )
-    sa_count = sa_cursor.fetchone()["cnt"]
+    sa_row = sa_cursor.fetchone()
+    sa_count = sa_row["cnt"] if sa_row else 0
 
     # 检查 raw_message 存在且未被修改（不可变触发器保证）
     rm_cursor = conn.execute(

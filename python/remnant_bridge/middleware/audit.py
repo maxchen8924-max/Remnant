@@ -12,8 +12,9 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 
 class AuditLogMiddleware(BaseHTTPMiddleware):

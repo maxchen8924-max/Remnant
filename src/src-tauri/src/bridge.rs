@@ -814,6 +814,7 @@ pub async fn invoke_sidecar_status(state: State<'_, SidecarState>) -> Result<ser
         "running": manager.is_running(),
         "port": manager.get_port(),
         "base_url": manager.get_base_url(),
+        "python_bin": manager.get_python_bin(),
         "crash_restarts": manager.get_crash_restarts()
     }))
 }

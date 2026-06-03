@@ -10,15 +10,43 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import time
+from collections.abc import Mapping
 from typing import Any
 
-from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.responses import Response
 
 from remnant_bridge.config import TOKEN_EXPIRY_SECONDS, TOKEN_LENGTH
+
+
+def _hash_token(token: str) -> str:
+    """Hash a token value for in-memory comparison."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def extract_auth_token(headers: Mapping[str, str]) -> str | None:
+    """Extract the sidecar token from supported request headers.
+
+    `Authorization: Bearer` is used by the Rust bridge today. `X-Remnant-Token`
+    is kept for compatibility with the whitepaper and API docs.
+    """
+    auth_header = headers.get("Authorization") or headers.get("authorization") or ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        return token or None
+
+    legacy_header = (
+        headers.get("X-Remnant-Token")
+        or headers.get("x-remnant-token")
+        or ""
+    )
+    legacy_token = legacy_header.strip()
+    return legacy_token or None
 
 
 class EphemeralTokenManager:
@@ -28,15 +56,28 @@ class EphemeralTokenManager:
         self._tokens: dict[str, float] = {}  # token_hash -> expiry_time
         self._current_token: str = ""
         self._current_token_hash: str = ""
-        self._generate_new_token()
+        self._external_token = False
+
+        env_token = os.environ.get("REMNANT_AUTH_TOKEN", "").strip()
+        if env_token:
+            self._external_token = True
+            self._store_token(env_token, expiry=float("inf"))
+        else:
+            self._generate_new_token()
+
+    def _store_token(self, token: str, expiry: float | None = None) -> str:
+        """Store a token by hashing its string representation."""
+        self._current_token = token
+        self._current_token_hash = _hash_token(token)
+        self._tokens[self._current_token_hash] = (
+            expiry if expiry is not None else time.time() + TOKEN_EXPIRY_SECONDS
+        )
+        return self._current_token
 
     def _generate_new_token(self) -> str:
         """生成新的 ephemeral token。"""
-        raw = os.urandom(TOKEN_LENGTH)
-        self._current_token = raw.hex()
-        self._current_token_hash = hashlib.sha256(raw).hexdigest()
-        expiry = time.time() + TOKEN_EXPIRY_SECONDS
-        self._tokens[self._current_token_hash] = expiry
+        token = os.urandom(TOKEN_LENGTH).hex()
+        self._store_token(token)
 
         # 清理过期 token
         now = time.time()
@@ -48,6 +89,9 @@ class EphemeralTokenManager:
 
     def get_current_token(self) -> str:
         """获取当前有效 token（供 IPC 桥接调用）。"""
+        if self._external_token:
+            return self._current_token
+
         # 检查当前 token 是否即将过期，提前刷新
         if self._current_token_hash not in self._tokens:
             self._generate_new_token()
@@ -65,14 +109,17 @@ class EphemeralTokenManager:
         Returns:
             True 如果有效且未过期
         """
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        if not token:
+            return False
+
+        token_hash = _hash_token(token)
         expiry = self._tokens.get(token_hash)
         if expiry is None:
             return False
         if time.time() > expiry:
             del self._tokens[token_hash]
             return False
-        return True
+        return any(hmac.compare_digest(token_hash, stored) for stored in self._tokens)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -93,15 +140,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/health" or request.method == "OPTIONS":
             return await call_next(request)
 
-        # 从 Authorization header 提取 token
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
+        token = extract_auth_token(request.headers)
+        if token is None:
             return JSONResponse(
                 status_code=401,
-                content={"detail": "Missing or invalid Authorization header"},
+                content={"detail": "Missing Authorization Bearer or X-Remnant-Token header"},
             )
 
-        token = auth_header[7:]  # 去掉 "Bearer " 前缀
         if not self.token_manager.validate_token(token):
             return JSONResponse(
                 status_code=401,

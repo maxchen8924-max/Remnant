@@ -166,7 +166,9 @@ def search_fts_with_scope(
 
     # 构建 IN 子句的占位符
     placeholders = ",".join("?" * len(visible_ids))
-    params = list(visible_ids) + [query, top_k]
+    params: list[Any] = [query]
+    params.extend(visible_ids)
+    params.append(top_k)
 
     cursor = conn.execute(
         f"""SELECT mc.id, mc.source_artifact_id, mc.relationship_scope_id,
