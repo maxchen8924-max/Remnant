@@ -16,7 +16,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
-from ..cli import get_base_url, get_token
+from ..config import get_base_url, get_token
 
 console = Console()
 

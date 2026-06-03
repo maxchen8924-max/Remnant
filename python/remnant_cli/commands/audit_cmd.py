@@ -13,7 +13,7 @@ import httpx
 from rich.console import Console
 from rich.table import Table
 
-from ..cli import get_base_url, get_token
+from ..config import get_base_url, get_token
 
 console = Console()
 
