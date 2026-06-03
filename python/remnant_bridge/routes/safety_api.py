@@ -18,8 +18,8 @@ from pydantic import BaseModel, Field
 
 from remnant_core.models import SafetyAction, SafetyDirective, SafetyIndicators
 from remnant_policy.safety import collect_safety_indicators, evaluate_safety, handle_directive
-from remnant_store.db import get_connection
 from remnant_store.scope_dao import ScopeDAO
+from remnant_store.schema import init_db
 
 router = APIRouter(prefix="/api/v1/safety", tags=["safety"])
 
@@ -64,7 +64,7 @@ class SafetyPolicyUpdateRequest(BaseModel):
 def _get_db_conn() -> sqlite3.Connection:
     """获取数据库连接（非生成器版本，用于手动管理生命周期）。"""
     from remnant_bridge.config import DEFAULT_DB_PATH
-    return get_connection(DEFAULT_DB_PATH)
+    return init_db(DEFAULT_DB_PATH)
 
 
 # ==================== 端点 ====================

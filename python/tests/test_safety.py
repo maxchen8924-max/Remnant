@@ -835,27 +835,49 @@ class TestSafetyAPIEndpoints:
     """FastAPI 端点集成测试 — 需要 pydantic_core。"""
 
     @pytest.fixture
-    def client(self):
+    def api_db_path(self, tmp_path) -> str:
+        return str(tmp_path / "safety_api.db")
+
+    @pytest.fixture
+    def db(self, api_db_path: str):
+        conn = init_db(api_db_path)
+        yield conn
+        conn.close()
+
+    @pytest.fixture
+    def client(self, api_db_path: str):
         if not _PYDANTIC_AVAILABLE:
             pytest.skip("pydantic_core not available in this environment")
         try:
             from fastapi.testclient import TestClient
             from remnant_bridge.main import app
             from remnant_bridge.middleware.auth import EphemeralTokenManager
+            from remnant_bridge.routes import safety_api
             import remnant_bridge.main as main_module
 
             token_manager = EphemeralTokenManager()
             main_module.token_manager = token_manager
+            original_get_db_conn = safety_api._get_db_conn
 
             for middleware in app.user_middleware:
                 if hasattr(middleware, "cls") and middleware.cls.__name__ == "AuthMiddleware":
                     middleware.kwargs["token_manager"] = token_manager
 
+            def _get_test_conn():
+                return init_db(api_db_path)
+
+            safety_api._get_db_conn = _get_test_conn
+            app.middleware_stack = None
             test_client = TestClient(app)
             valid_token = token_manager.get_current_token()
             test_client.headers.update({"Authorization": f"Bearer {valid_token}"})
 
-            return test_client
+            try:
+                yield test_client
+            finally:
+                test_client.close()
+                safety_api._get_db_conn = original_get_db_conn
+                app.middleware_stack = None
         except ImportError:
             pytest.skip("pydantic_core not available in this environment")
 

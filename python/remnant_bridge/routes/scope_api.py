@@ -29,9 +29,9 @@ from remnant_core.models import (
     ScopeDeleteRequest,
 )
 from remnant_store.chunk_visibility import get_visible_chunk_ids
-from remnant_store.db import get_connection
 from remnant_store.scope_dao import ScopeDAO
 from remnant_store.scope_deletion import hard_delete_scope, soft_delete_scope
+from remnant_store.schema import init_db
 
 router = APIRouter(prefix="/api/v1/scope", tags=["scope"])
 
@@ -56,7 +56,7 @@ class VisibilityUpgradeRequest(BaseModel):
 def _get_db_conn():
     """获取数据库连接（非生成器版本，用于手动管理生命周期）。"""
     from remnant_bridge.config import DEFAULT_DB_PATH
-    return get_connection(DEFAULT_DB_PATH)
+    return init_db(DEFAULT_DB_PATH)
 
 
 # ==================== CRUD 端点 ====================

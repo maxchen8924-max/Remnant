@@ -60,6 +60,7 @@ def client(token_manager):
             if hasattr(middleware, "cls") and middleware.cls.__name__ == "AuthMiddleware":
                 middleware.kwargs["token_manager"] = token_manager
 
+        app.middleware_stack = None
         test_client = TestClient(app)
 
         # 注入有效 token 到请求头

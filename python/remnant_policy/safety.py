@@ -150,7 +150,7 @@ _AGE_FLAG_MAP: dict[str, str] = {
 
 def _utcnow_iso() -> str:
     """获取当前 UTC 时间的 ISO 8601 格式字符串。"""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def _parse_iso_time(ts: str) -> datetime:
