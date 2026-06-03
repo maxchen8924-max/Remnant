@@ -20,6 +20,7 @@ It is not a production-readiness checklist.
 - `python -m remnant_bridge` package entrypoint.
 - Sidecar auth alignment for `Authorization: Bearer` and `X-Remnant-Token`.
 - Rust sidecar support for `REMNANT_PYTHON_BIN`.
+- Root-level Python bootstrap script for supported sidecar environments.
 - Open-source governance files: license, contributing guide, security policy,
   code of conduct, changelog, and issue templates.
 
@@ -28,6 +29,8 @@ It is not a production-readiness checklist.
 Run these before tagging:
 
 ```bash
+tools/bootstrap-python.sh
+
 cd python
 .venv/bin/python scripts/run_preview_demo.py
 .venv/bin/python -m pytest tests -q
@@ -90,10 +93,12 @@ Include the open-source preview work:
 - `docs/release-v0.1.1-preview.md`
 - `docs/api_reference.md`
 - `python/pyproject.toml`
+- `tools/bootstrap-python.sh`
 - `python/remnant_bridge/*`
 - `python/remnant_store/chunk_visibility.py`
 - `python/remnant_store/scope_deletion.py`
 - `python/scripts/run_preview_demo.py`
+- `python/tests/test_bootstrap_python_env.py`
 - `python/tests/test_bridge_runtime.py`
 - `python/tests/test_preview_demo.py`
 - `python/tests/test_sidecar_smoke.py`

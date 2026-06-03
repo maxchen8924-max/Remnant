@@ -67,6 +67,18 @@ remnant/
 Use Python 3.11 or 3.12 for the HTTP sidecar preview:
 
 ```bash
+tools/bootstrap-python.sh
+```
+
+The bootstrap script selects `python3.12` or `python3.11`, creates
+`python/.venv`, installs the Python sidecar dependencies, and runs the sidecar
+smoke test. Use `REMNANT_PYTHON_BIN=/path/to/python3.12` or
+`tools/bootstrap-python.sh --python /path/to/python3.12` when your supported
+interpreter is not on `PATH`.
+
+Manual setup:
+
+```bash
 cd python
 python3.12 -m venv .venv
 source .venv/bin/activate

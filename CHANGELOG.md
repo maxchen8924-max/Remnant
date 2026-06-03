@@ -11,6 +11,7 @@
 - Fixed scoped FTS helper parameter ordering.
 - Added preview demo CLI for import, query, soft delete, and raw-data integrity.
 - Added sidecar smoke test for the real `python -m remnant_bridge` entrypoint.
+- Added `tools/bootstrap-python.sh` for supported Python sidecar setup.
 - Added Rust sidecar support for `REMNANT_PYTHON_BIN`.
 - Declared Python 3.11/3.12 support for the HTTP sidecar preview.
 - Added contributing, security, code-of-conduct, license, and issue-template

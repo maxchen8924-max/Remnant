@@ -5,13 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 
+FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "sample_dataset"
+
+
 def test_preview_demo_runs_import_query_and_delete(tmp_path: Path) -> None:
     from remnant_bridge.preview_demo import run_preview_demo
 
-    fixture_dir = Path("tests/fixtures/sample_dataset")
     result = run_preview_demo(
         db_path=tmp_path / "preview.db",
-        fixture_dir=fixture_dir,
+        fixture_dir=FIXTURE_DIR,
         query="西湖",
     )
 
@@ -30,7 +32,7 @@ def test_preview_demo_summary_is_cli_friendly(tmp_path: Path) -> None:
 
     result = run_preview_demo(
         db_path=tmp_path / "preview.db",
-        fixture_dir=Path("tests/fixtures/sample_dataset"),
+        fixture_dir=FIXTURE_DIR,
         query="红烧肉",
     )
 
