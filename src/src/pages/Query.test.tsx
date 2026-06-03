@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Query from "./Query";
 
 const queryMock = vi.fn();
+const resolveProfileMock = vi.fn();
+const listScopesMock = vi.fn();
 
 vi.mock("../hooks/useSidecar", () => ({
   default: () => ({
     query: queryMock,
+    resolveProfile: resolveProfileMock,
+    listScopes: listScopesMock,
     loading: false,
     error: null,
   }),
@@ -15,9 +19,25 @@ vi.mock("../hooks/useSidecar", () => ({
 describe("Query page", () => {
   beforeEach(() => {
     queryMock.mockReset();
+    resolveProfileMock.mockReset();
+    listScopesMock.mockReset();
   });
 
-  it("runs a scoped query and renders answer, trace, and evidence rows", async () => {
+  it("loads relationship spaces by profile name before running an evidence query", async () => {
+    resolveProfileMock.mockResolvedValue({
+      deceased_profile_id: "profile-001",
+      profile_name: "妈妈",
+      created: false,
+    });
+    listScopesMock.mockResolvedValue({
+      scopes: [
+        {
+          id: "scope-abc",
+          scope_name: "作为女儿",
+          relationship_type: "child",
+        },
+      ],
+    });
     queryMock.mockResolvedValue({
       content:
         "Evidence-backed memory summary:\n" +
@@ -30,7 +50,14 @@ describe("Query page", () => {
 
     render(<Query />);
 
-    fireEvent.change(screen.getByLabelText("Scope ID"), {
+    fireEvent.change(screen.getByLabelText("逝者档案"), {
+      target: { value: "妈妈" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "加载关系空间" }));
+
+    expect(await screen.findByRole("option", { name: /作为女儿/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("关系空间"), {
       target: { value: "scope-abc" },
     });
     fireEvent.change(screen.getByLabelText("问题"), {
@@ -39,6 +66,10 @@ describe("Query page", () => {
     fireEvent.click(screen.getByRole("button", { name: "查询证据" }));
 
     await waitFor(() => {
+      expect(resolveProfileMock).toHaveBeenCalledWith({
+        profile_name: "妈妈",
+      });
+      expect(listScopesMock).toHaveBeenCalledWith("profile-001");
       expect(queryMock).toHaveBeenCalledWith({
         scope_id: "scope-abc",
         query: "西湖",
@@ -53,6 +84,20 @@ describe("Query page", () => {
   });
 
   it("keeps unanswered queries evidence-bounded", async () => {
+    resolveProfileMock.mockResolvedValue({
+      deceased_profile_id: "profile-001",
+      profile_name: "妈妈",
+      created: false,
+    });
+    listScopesMock.mockResolvedValue({
+      scopes: [
+        {
+          id: "missing-scope",
+          scope_name: "作为女儿",
+          relationship_type: "child",
+        },
+      ],
+    });
     queryMock.mockResolvedValue({
       content:
         "No matching evidence was found in the selected relationship scope. " +
@@ -64,7 +109,14 @@ describe("Query page", () => {
 
     render(<Query />);
 
-    fireEvent.change(screen.getByLabelText("Scope ID"), {
+    fireEvent.change(screen.getByLabelText("逝者档案"), {
+      target: { value: "妈妈" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "加载关系空间" }));
+
+    expect(await screen.findByRole("option", { name: /作为女儿/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("关系空间"), {
       target: { value: "missing-scope" },
     });
     fireEvent.change(screen.getByLabelText("问题"), {
@@ -75,5 +127,17 @@ describe("Query page", () => {
     expect(await screen.findByText("无 trace")).toBeInTheDocument();
     expect(screen.getByText(/No matching evidence was found/)).toBeInTheDocument();
     expect(screen.getByText("scope_not_found")).toBeInTheDocument();
+  });
+
+  it("requires a selected relationship space before querying", () => {
+    render(<Query />);
+
+    fireEvent.change(screen.getByLabelText("问题"), {
+      target: { value: "西湖" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查询证据" }));
+
+    expect(screen.getByText("请选择关系空间。")).toBeInTheDocument();
+    expect(queryMock).not.toHaveBeenCalled();
   });
 });

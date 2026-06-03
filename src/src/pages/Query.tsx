@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
 import useSidecar, { type JsonValue } from "../hooks/useSidecar";
+import {
+  formatRelationshipSpaceLabel,
+  getProfileId,
+  getRelationshipSpaces,
+  type RelationshipSpace,
+} from "../lib/relationshipSpace";
 
 interface QueryResult {
   content: string;
@@ -9,26 +15,66 @@ interface QueryResult {
 }
 
 function Query(): React.ReactElement {
-  const { query, loading, error } = useSidecar();
-  const [scopeId, setScopeId] = useState("");
+  const { query, resolveProfile, listScopes, loading, error } = useSidecar();
+  const [profileName, setProfileName] = useState("");
+  const [relationshipSpaces, setRelationshipSpaces] = useState<RelationshipSpace[]>([]);
+  const [selectedScopeId, setSelectedScopeId] = useState("");
   const [question, setQuestion] = useState("西湖");
   const [result, setResult] = useState<QueryResult | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [spaceLoading, setSpaceLoading] = useState(false);
 
   const evidenceRows = useMemo(
     () => (result ? extractEvidenceRows(result.content) : []),
     [result]
   );
 
+  const selectedSpace = useMemo(
+    () => relationshipSpaces.find((space) => space.id === selectedScopeId) ?? null,
+    [relationshipSpaces, selectedScopeId]
+  );
+
+  const handleLoadSpaces = async () => {
+    setLocalError(null);
+    setResult(null);
+
+    const trimmedProfileName = profileName.trim();
+    if (!trimmedProfileName) {
+      setLocalError("逝者档案必填。");
+      return;
+    }
+
+    setSpaceLoading(true);
+    try {
+      const profilePayload = await resolveProfile({
+        profile_name: trimmedProfileName,
+      });
+      const deceasedProfileId = getProfileId(profilePayload);
+      const scopePayload = await listScopes(deceasedProfileId);
+      const spaces = getRelationshipSpaces(scopePayload);
+
+      setRelationshipSpaces(spaces);
+      setSelectedScopeId(spaces[0]?.id ?? "");
+      if (spaces.length === 0) {
+        setLocalError("该逝者档案下暂无关系空间，请先创建一个。");
+      }
+    } catch (err) {
+      setRelationshipSpaces([]);
+      setSelectedScopeId("");
+      setLocalError(String(err));
+    } finally {
+      setSpaceLoading(false);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLocalError(null);
 
-    const trimmedScopeId = scopeId.trim();
     const trimmedQuestion = question.trim();
 
-    if (!trimmedScopeId) {
-      setLocalError("Scope ID 必填。");
+    if (!selectedScopeId) {
+      setLocalError("请选择关系空间。");
       return;
     }
 
@@ -38,7 +84,7 @@ function Query(): React.ReactElement {
     }
 
     const payload = await query({
-      scope_id: trimmedScopeId,
+      scope_id: selectedScopeId,
       query: trimmedQuestion,
       stream: false,
     });
@@ -56,16 +102,61 @@ function Query(): React.ReactElement {
 
           <form className="query-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="query-scope-id" className="form-label">
-                Scope ID
+              <label htmlFor="query-profile-name" className="form-label">
+                逝者档案
               </label>
               <input
-                id="query-scope-id"
+                id="query-profile-name"
                 className="form-input"
-                value={scopeId}
-                onChange={(event) => setScopeId(event.target.value)}
+                value={profileName}
+                onChange={(event) => {
+                  setProfileName(event.target.value);
+                  setRelationshipSpaces([]);
+                  setSelectedScopeId("");
+                  setResult(null);
+                }}
+                placeholder="输入名字，如 妈妈"
                 autoComplete="off"
               />
+            </div>
+
+            <div className="form-group">
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={handleLoadSpaces}
+                disabled={loading || spaceLoading}
+              >
+                {spaceLoading ? "加载中" : "加载关系空间"}
+              </button>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="query-relationship-space" className="form-label">
+                关系空间
+              </label>
+              <select
+                id="query-relationship-space"
+                className="form-select"
+                value={selectedScopeId}
+                onChange={(event) => {
+                  setSelectedScopeId(event.target.value);
+                  setResult(null);
+                }}
+                disabled={relationshipSpaces.length === 0}
+              >
+                <option value="">请选择关系空间</option>
+                {relationshipSpaces.map((space) => (
+                  <option key={space.id} value={space.id}>
+                    {formatRelationshipSpaceLabel(space)}
+                  </option>
+                ))}
+              </select>
+              {selectedSpace && (
+                <span className="form-hint">
+                  当前关系空间: {selectedSpace.scope_name}
+                </span>
+              )}
             </div>
 
             <div className="form-group">

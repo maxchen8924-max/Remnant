@@ -6,8 +6,14 @@
  * - 保存策略（通过 Tauri invoke）
  * - 查看最近7天安全事件
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import useSidecar from "../hooks/useSidecar";
+import {
+  formatRelationshipSpaceLabel,
+  getProfileId,
+  getRelationshipSpaces,
+  type RelationshipSpace,
+} from "../lib/relationshipSpace";
 
 /** 安全策略字段中文映射 */
 const POLICY_LABELS: Record<string, string> = {
@@ -92,69 +98,90 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 function SafetySettings(): React.ReactElement {
-  const { getSafetyPolicy, updateSafetyPolicy, getSafetyEvents, loading, error } = useSidecar();
+  const {
+    resolveProfile,
+    listScopes,
+    getSafetyPolicy,
+    updateSafetyPolicy,
+    getSafetyEvents,
+    loading,
+    error,
+  } = useSidecar();
 
-  const [scopeId, setScopeId] = useState<string>("");
+  const [profileName, setProfileName] = useState<string>("");
+  const [relationshipSpaces, setRelationshipSpaces] = useState<RelationshipSpace[]>([]);
+  const [selectedScopeId, setSelectedScopeId] = useState<string>("");
   const [policy, setPolicy] = useState<Record<string, unknown>>({ ...POLICY_DEFAULTS });
   const [events, setEvents] = useState<SafetyEvent[]>([]);
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loadedScopeId, setLoadedScopeId] = useState<string>("");
+  const [loadedScopeName, setLoadedScopeName] = useState<string>("");
+  const [spaceLoading, setSpaceLoading] = useState(false);
 
-  /** 加载安全策略 */
-  const loadPolicy = useCallback(async (): Promise<void> => {
-    if (!scopeId.trim()) return;
+  const selectedSpace = relationshipSpaces.find((space) => space.id === selectedScopeId) ?? null;
 
-    setFetching(true);
+  /** 加载当前逝者档案下的关系空间 */
+  const loadRelationshipSpaces = useCallback(async (): Promise<void> => {
     setFetchError(null);
+    setSuccessMessage(null);
+    setLoadedScopeId("");
+    setLoadedScopeName("");
+    setEvents([]);
 
+    const trimmedProfileName = profileName.trim();
+    if (!trimmedProfileName) {
+      setFetchError("逝者档案必填。");
+      return;
+    }
+
+    setSpaceLoading(true);
     try {
-      const result = await getSafetyPolicy(scopeId.trim());
-      const policyData = (result as Record<string, unknown>)?.safety_policy as Record<string, unknown> | undefined;
-      if (policyData) {
-        setPolicy({ ...POLICY_DEFAULTS, ...policyData });
+      const profilePayload = await resolveProfile({
+        profile_name: trimmedProfileName,
+      });
+      const deceasedProfileId = getProfileId(profilePayload);
+      const scopePayload = await listScopes(deceasedProfileId);
+      const spaces = getRelationshipSpaces(scopePayload);
+
+      setRelationshipSpaces(spaces);
+      setSelectedScopeId(spaces[0]?.id ?? "");
+      if (spaces.length === 0) {
+        setFetchError("该逝者档案下暂无关系空间，请先创建一个。");
       }
-      setLoadedScopeId(scopeId.trim());
     } catch (err) {
+      setRelationshipSpaces([]);
+      setSelectedScopeId("");
       setFetchError(String(err));
     } finally {
-      setFetching(false);
+      setSpaceLoading(false);
     }
-  }, [scopeId, getSafetyPolicy]);
-
-  /** 加载安全事件 */
-  const loadEvents = useCallback(async (): Promise<void> => {
-    if (!scopeId.trim()) return;
-
-    try {
-      const result = await getSafetyEvents(scopeId.trim(), 7);
-      const eventList = (result as Record<string, unknown>)?.events as SafetyEvent[] | undefined;
-      setEvents(eventList || []);
-    } catch (err) {
-      // 事件加载失败不影响主要功能
-      setEvents([]);
-    }
-  }, [scopeId, getSafetyEvents]);
+  }, [profileName, resolveProfile, listScopes]);
 
   /** 同时加载策略和事件 */
   const loadAll = useCallback(async (): Promise<void> => {
-    if (!scopeId.trim()) return;
+    if (!selectedScopeId) {
+      setFetchError("请选择关系空间。");
+      return;
+    }
 
     setFetching(true);
     setFetchError(null);
+    setSuccessMessage(null);
 
     try {
       const [policyResult, eventsResult] = await Promise.all([
-        getSafetyPolicy(scopeId.trim()),
-        getSafetyEvents(scopeId.trim(), 7),
+        getSafetyPolicy(selectedScopeId),
+        getSafetyEvents(selectedScopeId, 7),
       ]);
 
       const policyData = (policyResult as Record<string, unknown>)?.safety_policy as Record<string, unknown> | undefined;
       if (policyData) {
         setPolicy({ ...POLICY_DEFAULTS, ...policyData });
       }
-      setLoadedScopeId(scopeId.trim());
+      setLoadedScopeId(selectedScopeId);
+      setLoadedScopeName(selectedSpace?.scope_name ?? selectedScopeId);
 
       const eventList = (eventsResult as Record<string, unknown>)?.events as SafetyEvent[] | undefined;
       setEvents(eventList || []);
@@ -163,7 +190,7 @@ function SafetySettings(): React.ReactElement {
     } finally {
       setFetching(false);
     }
-  }, [scopeId, getSafetyPolicy, getSafetyEvents]);
+  }, [selectedScopeId, selectedSpace, getSafetyPolicy, getSafetyEvents]);
 
   /** 保存安全策略 */
   const handleSave = async (): Promise<void> => {
@@ -212,29 +239,65 @@ function SafetySettings(): React.ReactElement {
 
       {(error || fetchError) && (
         <div className="scope-error-message">
-          ❌ {fetchError || error}
+          {fetchError || error}
         </div>
       )}
 
-      {/* 输入 Scope ID */}
+      {/* 选择关系空间 */}
       <div className="scope-section">
         <div className="scope-section-header">
-          <h3>选择作用域</h3>
+          <h3>选择关系空间</h3>
         </div>
         <div className="scope-profile-input">
+          <label htmlFor="safety-profile-name" className="form-label">
+            逝者档案
+          </label>
           <input
+            id="safety-profile-name"
             type="text"
             className="form-input"
-            placeholder="输入作用域 ID 以加载安全策略"
-            value={scopeId}
-            onChange={(e) => setScopeId(e.target.value)}
+            placeholder="输入名字，如 妈妈"
+            value={profileName}
+            onChange={(e) => {
+              setProfileName(e.target.value);
+              setRelationshipSpaces([]);
+              setSelectedScopeId("");
+              setLoadedScopeId("");
+              setLoadedScopeName("");
+            }}
           />
           <button
             className="btn btn-primary"
-            onClick={loadAll}
-            disabled={fetching || !scopeId.trim()}
+            onClick={loadRelationshipSpaces}
+            disabled={fetching || spaceLoading || loading}
           >
-            {fetching ? "加载中..." : "加载"}
+            {spaceLoading ? "加载中..." : "加载关系空间"}
+          </button>
+        </div>
+        <div className="scope-profile-input">
+          <label htmlFor="safety-relationship-space" className="form-label">
+            关系空间
+          </label>
+          <select
+            id="safety-relationship-space"
+            className="form-select"
+            value={selectedScopeId}
+            onChange={(e) => setSelectedScopeId(e.target.value)}
+            disabled={relationshipSpaces.length === 0}
+          >
+            <option value="">请选择关系空间</option>
+            {relationshipSpaces.map((space) => (
+              <option key={space.id} value={space.id}>
+                {formatRelationshipSpaceLabel(space)}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn btn-primary"
+            onClick={loadAll}
+            disabled={fetching || !selectedScopeId}
+          >
+            {fetching ? "加载中..." : "加载安全策略"}
           </button>
         </div>
       </div>
@@ -245,7 +308,7 @@ function SafetySettings(): React.ReactElement {
           <div className="scope-section">
             <div className="scope-section-header">
               <h3>安全策略配置</h3>
-              <span className="scope-count">作用域: {loadedScopeId.substring(0, 8)}...</span>
+              <span className="scope-count">关系空间: {loadedScopeName}</span>
             </div>
             <div className="safety-settings-grid">
               {POLICY_ORDER.map((key) => {
@@ -370,10 +433,10 @@ function SafetySettings(): React.ReactElement {
         </>
       )}
 
-      {!loadedScopeId && scopeId.trim() && !fetching && !fetchError && (
+      {!loadedScopeId && selectedScopeId && !fetching && !fetchError && (
         <div className="placeholder-card">
           <span className="placeholder-icon">🛡️</span>
-          <span>请输入作用域 ID 并点击"加载"以查看安全策略</span>
+          <span>请选择关系空间并加载安全策略</span>
         </div>
       )}
     </div>
