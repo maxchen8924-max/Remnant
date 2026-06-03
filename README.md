@@ -2,6 +2,8 @@
 
 Local-first digital legacy memory runtime.
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 Remnant is an evidence-first architecture for preserving, querying, and safely
 interacting with a deceased person's digital memories. It is not positioned as
 an "AI resurrection" product. The current release is an open-source architecture
@@ -63,6 +65,8 @@ remnant/
 ```
 
 ## Quick Start
+
+For a detailed setup walkthrough, see [docs/quickstart.md](docs/quickstart.md).
 
 Use Python 3.11 or 3.12 for the HTTP sidecar preview:
 
@@ -156,8 +160,26 @@ The Tauri sidecar uses `python3` by default. Override it with
 See [docs/open-source-roadmap.md](docs/open-source-roadmap.md) for the next
 milestones and release gates.
 
+## Start Here
+
+- [Quickstart](docs/quickstart.md): set up Python, run the preview demo, test the
+  frontend, and check the Tauri bridge.
+- [Architecture overview](docs/architecture.md): understand the local-first
+  runtime, storage model, evidence pipeline, scopes, safety layer, and bridge.
+- [API overview](docs/api-overview.md): inspect the active localhost sidecar
+  routes, token auth, common flow, examples, and preview caveats.
+- [Open-source roadmap](docs/open-source-roadmap.md): current maturity, release
+  gates, and contribution tracks.
+- [Contributing guide](CONTRIBUTING.md): project boundaries, checks, PR
+  expectations, and first contribution ideas.
+- [Security policy](SECURITY.md): how to report security issues and what the
+  preview security review covers.
+
 ## References
 
+- [Quickstart](docs/quickstart.md)
+- [Architecture overview](docs/architecture.md)
+- [API overview](docs/api-overview.md)
 - [Architecture whitepaper](docs/remnant-v0.1-architecture-whitepaper.md)
 - [API reference](docs/api_reference.md)
 - [v0.1 handover](docs/handover-v0.1.md)

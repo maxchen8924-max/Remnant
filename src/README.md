@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# Remnant Frontend And Desktop Shell
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the Remnant React frontend and Tauri desktop bridge.
 
-Currently, two official plugins are available:
+## Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+├── src/          # React pages, hooks, shared styles, and UI components
+├── src-tauri/    # Rust sidecar manager, IPC bridge, and Tauri config
+├── package.json  # frontend scripts and dependencies
+└── vite.config.ts
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Frontend Checks
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm test
+npm run build
 ```
+
+Run the local Vite preview:
+
+```bash
+npm run dev -- --host 127.0.0.1
+```
+
+## Desktop Bridge Checks
+
+```bash
+cd src-tauri
+cargo check --locked
+cargo test --locked
+```
+
+When launching the desktop app, set `REMNANT_PYTHON_BIN` if your default
+`python3` is not Python 3.11 or 3.12:
+
+```bash
+REMNANT_PYTHON_BIN=python3.12 npm run tauri dev
+```
+
+## Runtime Notes
+
+- The frontend calls the Tauri/Rust bridge through `src/hooks/useSidecar.ts`.
+- The bridge manages a Python sidecar process and sends local token-authenticated
+  requests.
+- User-facing flows should prefer profile names and relationship-space names;
+  internal IDs should remain implementation details.
+- This is a runtime scaffold for a developer preview, not a polished production
+  desktop app.
+
+For the full project setup, see [../docs/quickstart.md](../docs/quickstart.md).
