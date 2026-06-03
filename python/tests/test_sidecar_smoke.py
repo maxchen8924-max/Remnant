@@ -59,6 +59,40 @@ def test_python_module_entrypoint_serves_health(tmp_path: Path) -> None:
     }
 
 
+def test_python_module_entrypoint_serves_docs_when_enabled(tmp_path: Path) -> None:
+    port = _free_port()
+    env = {
+        **os.environ,
+        "REMNANT_SIDECAR_PORT": str(port),
+        "REMNANT_AUTH_TOKEN": "smoke-token",
+        "REMNANT_DB_PATH": str(tmp_path / "smoke.db"),
+        "REMNANT_ENABLE_DOCS": "1",
+    }
+    process = subprocess.Popen(
+        [sys.executable, "-m", "remnant_bridge"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        _wait_for_health(port, process)
+        docs_html = _http_get(port, "/docs")
+        openapi_json = _http_get(port, "/openapi.json")
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+
+    assert b"swagger-ui" in docs_html.lower()
+    assert json.loads(openapi_json)["info"]["title"] == "Remnant"
+
+
 def _wait_for_health(port: int, process: subprocess.Popen[str]) -> bytes:
     url = f"http://127.0.0.1:{port}/health"
     deadline = time.monotonic() + 15
@@ -82,6 +116,13 @@ def _wait_for_health(port: int, process: subprocess.Popen[str]) -> bytes:
             time.sleep(0.25)
 
     raise AssertionError(f"sidecar did not serve /health in time: {last_error}")
+
+
+def _http_get(port: int, path: str) -> bytes:
+    url = f"http://127.0.0.1:{port}{path}"
+    with urllib.request.urlopen(url, timeout=5) as response:
+        assert response.status == 200
+        return response.read()
 
 
 def _free_port() -> int:

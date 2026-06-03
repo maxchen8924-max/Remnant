@@ -19,6 +19,8 @@ It is not a production-readiness checklist.
 - Python bridge runtime helpers for import, query, and data-destroy routes.
 - `python -m remnant_bridge` package entrypoint.
 - Sidecar auth alignment for `Authorization: Bearer` and `X-Remnant-Token`.
+- Developer docs routes are available without a token when
+  `REMNANT_ENABLE_DOCS=1`.
 - Rust sidecar support for `REMNANT_PYTHON_BIN`.
 - Root-level Python bootstrap script for supported sidecar environments.
 - GitHub Actions CI for Python sidecar, frontend, and Rust preview gates.
@@ -41,8 +43,8 @@ npm test
 npm run build
 
 cd src-tauri
-cargo check
-cargo test
+cargo check --locked
+cargo test --locked
 ```
 
 Run the HTTP sidecar smoke test with a Python 3.11 or 3.12 environment:
@@ -67,9 +69,29 @@ Block the tag if any of these are true:
 - frontend build fails
 - Rust `cargo check` or `cargo test` fails
 - `python -m remnant_bridge` cannot serve `/health` on Python 3.11/3.12
+- `REMNANT_ENABLE_DOCS=1` cannot serve `/docs` and `/openapi.json`
 - GitHub Actions CI omits Python 3.11/3.12, frontend, or Rust preview gates
 - README claims production readiness or AI resurrection behavior
 - auth, deletion, scope isolation, or provenance behavior changes without tests
+
+## Local Acceptance Run
+
+2026-06-03 on macOS with Python 3.12.13, Node 24.14.1, npm 11.11.0, and
+Rust/Cargo 1.96.0:
+
+- `tools/bootstrap-python.sh`: passed, including sidecar smoke test
+- `.venv/bin/python scripts/run_preview_demo.py`: passed
+- `REMNANT_AUTH_TOKEN=dev-token REMNANT_ENABLE_DOCS=1 .venv/bin/python -m remnant_bridge`: started on `127.0.0.1:18731`
+- HTTP acceptance flow: `/health` 200, `/docs` 200, `/openapi.json` 200,
+  unauthenticated protected route 401, profile resolve passed, scope create
+  passed, `universal_chat_json` import passed, scoped query returned a retrieval
+  trace, safety policy read passed, scoped soft deletion passed
+- `.venv/bin/python -m pytest tests -q`: 340 passed
+- `npm install`: passed with 0 vulnerabilities
+- `npm test`: 5 test files and 10 tests passed
+- `npm run build`: passed with one non-failing Vite dynamic-import warning
+- `cargo check --locked`: passed
+- `cargo test --locked`: passed
 
 ## Known Preview Limits
 

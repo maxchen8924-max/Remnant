@@ -132,12 +132,27 @@ class AuthMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: Any, token_manager: EphemeralTokenManager) -> None:
         super().__init__(app)
         self.token_manager = token_manager
+        self.public_paths = {"/health"}
+        docs_enabled = os.environ.get("REMNANT_ENABLE_DOCS", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        if docs_enabled:
+            self.public_paths.update(
+                {
+                    "/docs",
+                    "/docs/oauth2-redirect",
+                    "/openapi.json",
+                    "/redoc",
+                }
+            )
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        # 跳过健康检查和 CORS 预检
-        if request.url.path == "/health" or request.method == "OPTIONS":
+        # 跳过健康检查、显式启用的开发文档和 CORS 预检
+        if request.url.path in self.public_paths or request.method == "OPTIONS":
             return await call_next(request)
 
         token = extract_auth_token(request.headers)
