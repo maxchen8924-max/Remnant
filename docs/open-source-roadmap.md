@@ -128,6 +128,7 @@ v0.1.1 preview:
 - Tauri sidecar can select a supported interpreter with `REMNANT_PYTHON_BIN`.
 - Python support is declared as 3.11/3.12 for the HTTP sidecar preview.
 - Sidecar smoke test exists and runs on supported Python interpreters.
+- GitHub Actions CI runs Python sidecar, frontend, and Rust preview gates.
 - Open-source contribution, security, license, changelog, and issue templates
   are present.
 - README states maturity and unfinished modules clearly.

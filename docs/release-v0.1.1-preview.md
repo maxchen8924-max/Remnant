@@ -21,6 +21,7 @@ It is not a production-readiness checklist.
 - Sidecar auth alignment for `Authorization: Bearer` and `X-Remnant-Token`.
 - Rust sidecar support for `REMNANT_PYTHON_BIN`.
 - Root-level Python bootstrap script for supported sidecar environments.
+- GitHub Actions CI for Python sidecar, frontend, and Rust preview gates.
 - Open-source governance files: license, contributing guide, security policy,
   code of conduct, changelog, and issue templates.
 
@@ -66,6 +67,7 @@ Block the tag if any of these are true:
 - frontend build fails
 - Rust `cargo check` or `cargo test` fails
 - `python -m remnant_bridge` cannot serve `/health` on Python 3.11/3.12
+- GitHub Actions CI omits Python 3.11/3.12, frontend, or Rust preview gates
 - README claims production readiness or AI resurrection behavior
 - auth, deletion, scope isolation, or provenance behavior changes without tests
 
@@ -92,6 +94,7 @@ Include the open-source preview work:
 - `docs/open-source-roadmap.md`
 - `docs/release-v0.1.1-preview.md`
 - `docs/api_reference.md`
+- `.github/workflows/ci.yml`
 - `python/pyproject.toml`
 - `tools/bootstrap-python.sh`
 - `python/remnant_bridge/*`
@@ -99,6 +102,7 @@ Include the open-source preview work:
 - `python/remnant_store/scope_deletion.py`
 - `python/scripts/run_preview_demo.py`
 - `python/tests/test_bootstrap_python_env.py`
+- `python/tests/test_ci_workflow.py`
 - `python/tests/test_bridge_runtime.py`
 - `python/tests/test_preview_demo.py`
 - `python/tests/test_sidecar_smoke.py`
