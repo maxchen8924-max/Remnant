@@ -12,6 +12,7 @@ function Sidebar(): React.ReactElement {
     { path: "/evidence", label: "证据卡片", icon: "🔍" },
     { path: "/scope/create", label: "创建作用域", icon: "➕" },
     { path: "/settings", label: "作用域管理", icon: "🛡️" },
+    { path: "/safety", label: "安全设置", icon: "🔒" },
     { path: "/destroy", label: "数据销毁", icon: "🧨" },
   ];
 

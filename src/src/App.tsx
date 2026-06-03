@@ -8,6 +8,7 @@ import Query from "./pages/Query";
 import Evidence from "./pages/Evidence";
 import ScopeManage from "./pages/ScopeManage";
 import ScopeCreate from "./pages/ScopeCreate";
+import SafetySettings from "./pages/SafetySettings";
 import Destroy from "./pages/Destroy";
 
 /**
@@ -18,7 +19,7 @@ import Destroy from "./pages/Destroy";
 function App(): React.ReactElement {
   return (
     <div className="app-layout">
-      <SafetyBanner />
+      <SafetyBanner directive={null} />
       <div className="app-body">
         <Sidebar />
         <div className="app-main">
@@ -32,6 +33,7 @@ function App(): React.ReactElement {
               <Route path="/evidence" element={<Evidence />} />
               <Route path="/settings" element={<ScopeManage />} />
               <Route path="/scope/create" element={<ScopeCreate />} />
+              <Route path="/safety" element={<SafetySettings />} />
               <Route path="/destroy" element={<Destroy />} />
             </Routes>
           </main>

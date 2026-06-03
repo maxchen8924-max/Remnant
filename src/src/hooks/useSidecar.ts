@@ -48,6 +48,32 @@ interface SafetyEvaluateRequest {
   scope_id: string;
 }
 
+/** Safety policy get request parameters */
+interface SafetyPolicyGetRequest {
+  scope_id: string;
+}
+
+/** Safety policy update request parameters */
+interface SafetyPolicyUpdateRequest {
+  scope_id: string;
+  max_session_minutes?: number;
+  max_sessions_daily?: number;
+  late_night_start?: string;
+  late_night_end?: string;
+  max_late_night_sessions?: number;
+  dependency_threshold?: number;
+  farewell_refusal_limit?: number;
+  cooldown_minutes?: number;
+  hard_break_enabled?: boolean;
+  escalate_on_crisis?: boolean;
+}
+
+/** Safety events request parameters */
+interface SafetyEventsRequest {
+  scope_id: string;
+  days?: number;
+}
+
 /** Data destroy request parameters */
 interface DataDestroyRequest {
   scope_id: string;
@@ -178,6 +204,84 @@ function useSidecar() {
       try {
         const result = await invoke<JsonValue>("invoke_safety_evaluate", {
           request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Get safety policy for a scope */
+  const getSafetyPolicy = useCallback(
+    async (scopeId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_safety_policy_get", {
+          request: { scope_id: scopeId },
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Update safety policy for a scope */
+  const updateSafetyPolicy = useCallback(
+    async (
+      scopeId: string,
+      policy: Record<string, unknown>
+    ): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_safety_policy_update", {
+          request: {
+            scope_id: scopeId,
+            max_session_minutes: policy.max_session_minutes as number | undefined,
+            max_sessions_daily: policy.max_sessions_daily as number | undefined,
+            late_night_start: policy.late_night_start as string | undefined,
+            late_night_end: policy.late_night_end as string | undefined,
+            max_late_night_sessions: policy.max_late_night_sessions as number | undefined,
+            dependency_threshold: policy.dependency_threshold as number | undefined,
+            farewell_refusal_limit: policy.farewell_refusal_limit as number | undefined,
+            cooldown_minutes: policy.cooldown_minutes as number | undefined,
+            hard_break_enabled: policy.hard_break_enabled as boolean | undefined,
+            escalate_on_crisis: policy.escalate_on_crisis as boolean | undefined,
+          },
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Get safety events for a scope */
+  const getSafetyEvents = useCallback(
+    async (scopeId: string, days: number = 7): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_safety_events", {
+          request: { scope_id: scopeId, days },
         });
         return result;
       } catch (e) {
@@ -401,6 +505,9 @@ function useSidecar() {
     createScope,
     deleteScope,
     evaluateSafety,
+    getSafetyPolicy,
+    updateSafetyPolicy,
+    getSafetyEvents,
     destroyData,
     listenQueryStream,
     listScopes,
@@ -421,5 +528,8 @@ export type {
   ScopeCreateRequest,
   ScopeDeleteRequest,
   SafetyEvaluateRequest,
+  SafetyPolicyGetRequest,
+  SafetyPolicyUpdateRequest,
+  SafetyEventsRequest,
   DataDestroyRequest,
 };

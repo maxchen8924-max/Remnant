@@ -65,6 +65,35 @@ pub struct DataDestroyRequest {
     pub confirm: bool,
 }
 
+/// Safety policy get request body.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SafetyPolicyGetRequest {
+    pub scope_id: String,
+}
+
+/// Safety policy update request body.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SafetyPolicyUpdateRequest {
+    pub scope_id: String,
+    pub max_session_minutes: Option<i32>,
+    pub max_sessions_daily: Option<i32>,
+    pub late_night_start: Option<String>,
+    pub late_night_end: Option<String>,
+    pub max_late_night_sessions: Option<i32>,
+    pub dependency_threshold: Option<f64>,
+    pub farewell_refusal_limit: Option<i32>,
+    pub cooldown_minutes: Option<i32>,
+    pub hard_break_enabled: Option<bool>,
+    pub escalate_on_crisis: Option<bool>,
+}
+
+/// Safety events request body.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SafetyEventsRequest {
+    pub scope_id: String,
+    pub days: Option<i32>,
+}
+
 /// Invokes the query endpoint on the Python sidecar.
 ///
 /// For streaming queries, the response is emitted as Tauri events chunk by chunk.
@@ -610,6 +639,167 @@ pub async fn invoke_scope_visibility_upgrade(
 pub async fn invoke_health_check(state: State<'_, SidecarState>) -> Result<bool, String> {
     let manager = state.lock().await;
     Ok(manager.health_check().await)
+}
+
+/// Gets the safety policy for a scope.
+#[tauri::command]
+pub async fn invoke_safety_policy_get(
+    state: State<'_, SidecarState>,
+    request: SafetyPolicyGetRequest,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/safety/policy/{}",
+        base_url, request.scope_id
+    );
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Safety policy get request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Safety policy get failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Updates the safety policy for a scope.
+#[tauri::command]
+pub async fn invoke_safety_policy_update(
+    state: State<'_, SidecarState>,
+    request: SafetyPolicyUpdateRequest,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!(
+        "{}/api/v1/safety/policy/{}",
+        base_url, request.scope_id
+    );
+
+    // Build the update payload excluding scope_id
+    let mut payload = serde_json::Map::new();
+    if let Some(v) = &request.max_session_minutes {
+        payload.insert("max_session_minutes".to_string(), serde_json::Value::Number((*v).into()));
+    }
+    if let Some(v) = &request.max_sessions_daily {
+        payload.insert("max_sessions_daily".to_string(), serde_json::Value::Number((*v).into()));
+    }
+    if let Some(v) = &request.late_night_start {
+        payload.insert("late_night_start".to_string(), serde_json::Value::String(v.clone()));
+    }
+    if let Some(v) = &request.late_night_end {
+        payload.insert("late_night_end".to_string(), serde_json::Value::String(v.clone()));
+    }
+    if let Some(v) = &request.max_late_night_sessions {
+        payload.insert("max_late_night_sessions".to_string(), serde_json::Value::Number((*v).into()));
+    }
+    if let Some(v) = &request.dependency_threshold {
+        payload.insert("dependency_threshold".to_string(), serde_json::Value::from(*v));
+    }
+    if let Some(v) = &request.farewell_refusal_limit {
+        payload.insert("farewell_refusal_limit".to_string(), serde_json::Value::Number((*v).into()));
+    }
+    if let Some(v) = &request.cooldown_minutes {
+        payload.insert("cooldown_minutes".to_string(), serde_json::Value::Number((*v).into()));
+    }
+    if let Some(v) = &request.hard_break_enabled {
+        payload.insert("hard_break_enabled".to_string(), serde_json::Value::Bool(*v));
+    }
+    if let Some(v) = &request.escalate_on_crisis {
+        payload.insert("escalate_on_crisis".to_string(), serde_json::Value::Bool(*v));
+    }
+
+    let response = client
+        .put(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .json(&serde_json::Value::Object(payload))
+        .send()
+        .await
+        .map_err(|e| format!("Safety policy update request failed: {}", e))?;
+
+    let status = response.status();
+    let resp_body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!(
+            "Safety policy update failed ({}): {}",
+            status, resp_body
+        ));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&resp_body).unwrap_or(serde_json::json!({ "raw": resp_body }));
+
+    Ok(json)
+}
+
+/// Gets safety events for a scope.
+#[tauri::command]
+pub async fn invoke_safety_events(
+    state: State<'_, SidecarState>,
+    request: SafetyEventsRequest,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let days = request.days.unwrap_or(7);
+    let url = format!(
+        "{}/api/v1/safety/events/{}?days={}",
+        base_url, request.scope_id, days
+    );
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Safety events request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Safety events failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
 }
 
 /// Checks whether the sidecar process is currently running.
