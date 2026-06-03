@@ -73,6 +73,10 @@ cd python
 REMNANT_AUTH_TOKEN=dev-token REMNANT_ENABLE_DOCS=1 .venv/bin/python -m remnant_bridge
 ```
 
+`dev-token` is only for the local quickstart. Generate a fresh local token when
+working with personal data, and do not use preview tokens for shared machines or
+production deployments.
+
 The sidecar binds to localhost. API routes require a local token. The Rust
 bridge uses:
 

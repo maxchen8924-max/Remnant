@@ -33,6 +33,9 @@ cd python
 REMNANT_AUTH_TOKEN=dev-token REMNANT_ENABLE_DOCS=1 .venv/bin/python -m remnant_bridge
 ```
 
+`dev-token` is only a local preview value for examples. Generate a fresh token
+before using personal data, and do not use example tokens in production.
+
 Then open:
 
 ```text

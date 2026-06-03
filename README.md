@@ -11,6 +11,10 @@ and runtime preview: useful for developers who want to study or extend the
 storage model, provenance pipeline, relationship-scope isolation, retrieval
 traceability, and safety policy layer.
 
+Do not commit real chat exports, diaries, local databases, tokens, or any
+personally identifiable family data to this public repository. Use only
+fictional or consent-cleared fixtures when testing or contributing.
+
 ## Maturity
 
 **v0.1 is a developer preview, not production software.**
@@ -107,6 +111,9 @@ Run the sidecar:
 cd python
 REMNANT_AUTH_TOKEN=dev-token REMNANT_ENABLE_DOCS=1 .venv/bin/python -m remnant_bridge
 ```
+
+`dev-token` is only a local preview token for the quickstart. Do not reuse it
+with real personal data, shared machines, or production deployments.
 
 macOS note: if importing FastAPI fails with a `pydantic_core` code-signature
 error, recreate the venv with Python 3.11 or 3.12 and reinstall `pip install -e

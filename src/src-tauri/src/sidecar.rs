@@ -87,11 +87,7 @@ impl SidecarManager {
             return Ok(());
         }
 
-        log::info!(
-            "Starting Python sidecar on port {} with token {}...",
-            self.port,
-            &self.auth_token[..8]
-        );
+        log::info!("Starting Python sidecar on port {}...", self.port);
 
         let child = Command::new(&self.python_bin)
             .arg("-m")

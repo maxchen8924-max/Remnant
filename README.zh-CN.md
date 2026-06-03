@@ -8,6 +8,9 @@ Remnant 是一套 evidence-first 的开源架构，用于保存、查询并安�
 它不是“AI 复活”产品。当前版本是面向开发者的架构和运行时预览，适合研究或扩展存储模型、
 来源追踪、关系空间隔离、检索 trace、安全策略和本地 sidecar 运行方式。
 
+不要把真实聊天记录、日记、本地数据库、token，或任何可识别个人/家庭身份的数据提交到这个公开仓库。
+测试和贡献时只使用虚构样例，或已经明确获得授权并完成脱敏的数据。
+
 ## 成熟度
 
 **v0.1 是 developer preview，不是生产软件。**
@@ -104,6 +107,8 @@ demo 会创建临时 SQLite DB，seed sample profile/scope，导入 sample chat 
 cd python
 REMNANT_AUTH_TOKEN=dev-token REMNANT_ENABLE_DOCS=1 .venv/bin/python -m remnant_bridge
 ```
+
+`dev-token` 只用于本地 quickstart 演示。不要在真实个人数据、共享机器或生产部署中复用它。
 
 前端：
 

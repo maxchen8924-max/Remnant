@@ -677,7 +677,7 @@ npm install                  # React 19 + Tauri 2.0
 cd python
 .venv/bin/python -m remnant_bridge.main
 # 监听 127.0.0.1:18731
-# ephemeral token 打印在启动日志
+# ephemeral token 通过环境变量注入，不打印到启动日志
 ```
 
 ### 13.3 启动前端 (Tauri Desktop)

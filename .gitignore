@@ -1,5 +1,6 @@
 # Python
 python/.venv/
+python/.venv-*/
 **/__pycache__/
 **/*.pyc
 python/.pytest_cache/
@@ -27,10 +28,20 @@ src/src-tauri/target/
 # Local agent/work logs
 .workbuddy/
 
-# Secrets
+# Env / secrets
+.env
+.env.*
+!.env.example
 *.key
 *.pem
-*.env.local
+
+# Remnant local runtime data
+.remnant/
+**/.remnant/
+
+# Local tokens
+/token
+*.token
 
 # Data
 *.db
