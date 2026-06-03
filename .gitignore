@@ -24,6 +24,9 @@ src/src-tauri/target/
 *.swp
 *.swo
 
+# Local agent/work logs
+.workbuddy/
+
 # Secrets
 *.key
 *.pem
