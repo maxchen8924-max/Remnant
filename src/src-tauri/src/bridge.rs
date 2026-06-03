@@ -55,6 +55,10 @@ pub struct ScopeDeleteRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SafetyEvaluateRequest {
     pub scope_id: String,
+    pub session_id: String,
+    pub current_query: String,
+    #[serde(default)]
+    pub session_stats: Option<serde_json::Value>,
 }
 
 /// Data destroy request body.
