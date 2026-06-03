@@ -283,6 +283,19 @@ class ImportResponse(BaseModel):
     errors: list[str] = Field(default_factory=list, description="导入过程中的错误信息")
 
 
+class ProfileResolveRequest(BaseModel):
+    """逝者档案名称解析请求。"""
+    profile_name: str = Field(description="用户输入的逝者档案名称")
+
+
+class ProfileResolveResponse(BaseModel):
+    """逝者档案名称解析响应。"""
+    deceased_profile_id: str = Field(description="内部逝者档案 ID")
+    profile_name: str = Field(description="逝者档案名称")
+    display_name: str | None = Field(default=None, description="展示名称")
+    created: bool = Field(description="本次请求是否新建档案")
+
+
 class ScopeCreateRequest(BaseModel):
     """关系作用域创建请求模型。"""
     deceased_profile_id: str = Field(description="逝者档案 ID")

@@ -30,6 +30,11 @@ interface ImportRequest {
   metadata?: Record<string, unknown>;
 }
 
+/** Profile resolve request parameters */
+interface ProfileResolveRequest {
+  profile_name: string;
+}
+
 /** Scope create request parameters — 对齐 Python remnant_core.models.ScopeCreateRequest */
 interface ScopeCreateRequest {
   deceased_profile_id: string;
@@ -140,6 +145,27 @@ function useSidecar() {
       setError(null);
       try {
         const result = await invoke<JsonValue>("invoke_import", {
+          request: params,
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /** Resolve a user-facing profile name into the internal deceased_profile ID */
+  const resolveProfile = useCallback(
+    async (params: ProfileResolveRequest): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_profile_resolve", {
           request: params,
         });
         return result;
@@ -502,6 +528,7 @@ function useSidecar() {
     refreshStatus,
     query,
     importData,
+    resolveProfile,
     createScope,
     deleteScope,
     evaluateSafety,
@@ -525,6 +552,7 @@ export type {
   JsonValue,
   QueryRequest,
   ImportRequest,
+  ProfileResolveRequest,
   ScopeCreateRequest,
   ScopeDeleteRequest,
   SafetyEvaluateRequest,

@@ -1,17 +1,17 @@
 /**
- * ScopeCreate — 创建关系作用域向导页面。
+ * ScopeCreate — 创建关系空间向导页面。
  *
- * 提供表单让用户创建新的关系作用域（Scope），包括：
- * - deceased_profile_id（逝者档案 ID）
- * - scope_name（作用域名称）
+ * 提供表单让用户创建新的关系空间，包括：
+ * - profile_name（逝者档案名称）
+ * - scope_name（关系空间名称）
  * - relationship_type（关系类型，下拉选择）
- * - scope_description（作用域描述，可选）
+ * - scope_description（关系空间描述，可选）
  *
- * 创建成功后自动跳转到 /settings（作用域管理页面）。
+ * 创建成功后自动跳转到 /settings（关系空间管理页面）。
  */
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import useSidecar from "../hooks/useSidecar";
+import useSidecar, { type JsonValue } from "../hooks/useSidecar";
 
 /** 关系类型选项，与白皮书 Ch9 一致 */
 const RELATIONSHIP_OPTIONS: Array<{ value: string; label: string; description: string }> = [
@@ -26,10 +26,10 @@ const RELATIONSHIP_OPTIONS: Array<{ value: string; label: string; description: s
 
 function ScopeCreate(): React.ReactElement {
   const navigate = useNavigate();
-  const { createScope, loading, error } = useSidecar();
+  const { createScope, resolveProfile, loading, error } = useSidecar();
 
   const [formData, setFormData] = useState({
-    deceased_profile_id: "",
+    profile_name: "",
     scope_name: "",
     relationship_type: "",
     scope_description: "",
@@ -42,11 +42,11 @@ function ScopeCreate(): React.ReactElement {
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!formData.deceased_profile_id.trim()) {
-      errors.deceased_profile_id = "请输入逝者档案 ID";
+    if (!formData.profile_name.trim()) {
+      errors.profile_name = "请输入逝者档案名称";
     }
     if (!formData.scope_name.trim()) {
-      errors.scope_name = "请输入作用域名称";
+      errors.scope_name = "请输入关系空间名称";
     }
     if (!formData.relationship_type) {
       errors.relationship_type = "请选择关系类型";
@@ -65,8 +65,13 @@ function ScopeCreate(): React.ReactElement {
     }
 
     try {
+      const profilePayload = await resolveProfile({
+        profile_name: formData.profile_name.trim(),
+      });
+      const deceasedProfileId = getProfileId(profilePayload);
+
       await createScope({
-        deceased_profile_id: formData.deceased_profile_id.trim(),
+        deceased_profile_id: deceasedProfileId,
         scope_name: formData.scope_name.trim(),
         relationship_type: formData.relationship_type,
         scope_description: formData.scope_description.trim() || undefined,
@@ -80,7 +85,7 @@ function ScopeCreate(): React.ReactElement {
       }, 1500);
     } catch (err) {
       // 错误已由 useSidecar 处理
-      console.error("创建作用域失败:", err);
+      console.error("创建关系空间失败:", err);
     }
   };
 
@@ -102,14 +107,14 @@ function ScopeCreate(): React.ReactElement {
 
   return (
     <div className="page-scope-create">
-      <h2>创建关系作用域</h2>
+      <h2>创建关系空间</h2>
       <p className="text-muted">
-        为逝者创建一个关系作用域。不同类型的关系将继承不同的默认权限。
+        为逝者创建一个关系空间。不同类型的关系将继承不同的默认权限。
       </p>
 
       {submitSuccess && (
         <div className="scope-create-success">
-          ✅ 作用域创建成功！正在跳转到管理页面...
+          ✅ 关系空间创建成功！正在跳转到管理页面...
         </div>
       )}
 
@@ -121,32 +126,32 @@ function ScopeCreate(): React.ReactElement {
 
       <form className="scope-create-form" onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="deceased_profile_id" className="form-label">
-            逝者档案 ID <span className="form-required">*</span>
+          <label htmlFor="profile_name" className="form-label">
+            逝者档案名称 <span className="form-required">*</span>
           </label>
           <input
-            id="deceased_profile_id"
+            id="profile_name"
             type="text"
-            className={`form-input ${formErrors.deceased_profile_id ? "form-input-error" : ""}`}
-            placeholder="输入逝者档案 ID"
-            value={formData.deceased_profile_id}
-            onChange={(e) => handleChange("deceased_profile_id", e.target.value)}
+            className={`form-input ${formErrors.profile_name ? "form-input-error" : ""}`}
+            placeholder="输入名字，如 妈妈"
+            value={formData.profile_name}
+            onChange={(e) => handleChange("profile_name", e.target.value)}
             disabled={loading || submitSuccess}
           />
-          {formErrors.deceased_profile_id && (
-            <span className="form-error">{formErrors.deceased_profile_id}</span>
+          {formErrors.profile_name && (
+            <span className="form-error">{formErrors.profile_name}</span>
           )}
         </div>
 
         <div className="form-group">
           <label htmlFor="scope_name" className="form-label">
-            作用域名称 <span className="form-required">*</span>
+            关系空间名称 <span className="form-required">*</span>
           </label>
           <input
             id="scope_name"
             type="text"
             className={`form-input ${formErrors.scope_name ? "form-input-error" : ""}`}
-            placeholder="例如：作为儿子、作为朋友"
+            placeholder="例如：作为女儿、老同学"
             value={formData.scope_name}
             onChange={(e) => handleChange("scope_name", e.target.value)}
             disabled={loading || submitSuccess}
@@ -186,7 +191,7 @@ function ScopeCreate(): React.ReactElement {
 
         <div className="form-group">
           <label htmlFor="scope_description" className="form-label">
-            作用域描述 <span className="form-optional">（可选）</span>
+            关系空间描述 <span className="form-optional">（可选）</span>
           </label>
           <textarea
             id="scope_description"
@@ -221,12 +226,25 @@ function ScopeCreate(): React.ReactElement {
             className="btn btn-primary"
             disabled={loading || submitSuccess}
           >
-            {loading ? "创建中..." : "创建作用域"}
+            {loading ? "创建中..." : "创建关系空间"}
           </button>
         </div>
       </form>
     </div>
   );
+}
+
+function getProfileId(value: JsonValue): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("无法解析逝者档案。");
+  }
+
+  const record = value as Record<string, JsonValue>;
+  if (typeof record.deceased_profile_id !== "string" || !record.deceased_profile_id) {
+    throw new Error("无法解析逝者档案。");
+  }
+
+  return record.deceased_profile_id;
 }
 
 /** 关系类型对应的默认权限映射 */
@@ -290,7 +308,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   can_view_medical: "查看医疗信息",
   can_view_intimate: "查看私密信息",
   can_interact_level3: "深度交互",
-  can_delete_scope: "删除作用域",
+  can_delete_scope: "删除关系空间",
 };
 
 const VALUE_LABELS: Record<string, string> = {

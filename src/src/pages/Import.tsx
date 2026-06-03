@@ -30,8 +30,8 @@ const SOURCE_ADAPTERS: SourceAdapterOption[] = [
 ];
 
 function Import(): React.ReactElement {
-  const { importData, loading, error } = useSidecar();
-  const [deceasedProfileId, setDeceasedProfileId] = useState("");
+  const { importData, resolveProfile, loading, error } = useSidecar();
+  const [profileName, setProfileName] = useState("");
   const [filePath, setFilePath] = useState("");
   const [scopeId, setScopeId] = useState("");
   const [fileType, setFileType] = useState(SOURCE_ADAPTERS[0].value);
@@ -50,12 +50,12 @@ function Import(): React.ReactElement {
     setLocalError(null);
     setResult(null);
 
-    const trimmedProfileId = deceasedProfileId.trim();
+    const trimmedProfileName = profileName.trim();
     const trimmedFilePath = filePath.trim();
     const trimmedScopeId = scopeId.trim();
     const nextErrors: Record<string, string> = {};
 
-    if (!trimmedProfileId) {
+    if (!trimmedProfileName) {
       nextErrors.deceasedProfileId = "逝者档案必填。";
     }
 
@@ -70,8 +70,12 @@ function Import(): React.ReactElement {
     }
 
     try {
+      const profilePayload = await resolveProfile({
+        profile_name: trimmedProfileName,
+      });
+      const deceasedProfileId = getProfileId(profilePayload);
       const payload = await importData({
-        deceased_profile_id: trimmedProfileId,
+        deceased_profile_id: deceasedProfileId,
         file_path: trimmedFilePath,
         file_type: selectedAdapter.value,
         scope_id: trimmedScopeId || undefined,
@@ -79,6 +83,7 @@ function Import(): React.ReactElement {
         metadata: {
           source_adapter: selectedAdapter.value,
           source_adapter_label: selectedAdapter.label,
+          profile_name: trimmedProfileName,
         },
       });
       setResult(toImportResult(payload));
@@ -128,10 +133,10 @@ function Import(): React.ReactElement {
                 className={`form-input ${
                   fieldErrors.deceasedProfileId ? "form-input-error" : ""
                 }`}
-                value={deceasedProfileId}
-                onChange={(event) => setDeceasedProfileId(event.target.value)}
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
                 autoComplete="off"
-                placeholder="profile-001"
+                placeholder="输入名字，如 妈妈"
               />
               {fieldErrors.deceasedProfileId && (
                 <span className="form-error">{fieldErrors.deceasedProfileId}</span>
@@ -243,6 +248,19 @@ function Metric({ label, value }: { label: string; value: string }): React.React
       <span className="import-metric-value">{value}</span>
     </div>
   );
+}
+
+function getProfileId(value: JsonValue): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("无法解析逝者档案。");
+  }
+
+  const record = value as Record<string, JsonValue>;
+  if (typeof record.deceased_profile_id !== "string" || !record.deceased_profile_id) {
+    throw new Error("无法解析逝者档案。");
+  }
+
+  return record.deceased_profile_id;
 }
 
 function toImportResult(value: JsonValue): ImportResult {

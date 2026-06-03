@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Import from "./Import";
 
 const importDataMock = vi.fn();
+const resolveProfileMock = vi.fn();
 
 vi.mock("../hooks/useSidecar", () => ({
   default: () => ({
     importData: importDataMock,
+    resolveProfile: resolveProfileMock,
     loading: false,
     error: null,
   }),
@@ -15,9 +17,15 @@ vi.mock("../hooks/useSidecar", () => ({
 describe("Import page", () => {
   beforeEach(() => {
     importDataMock.mockReset();
+    resolveProfileMock.mockReset();
   });
 
   it("imports a universal chat file and renders import metrics", async () => {
+    resolveProfileMock.mockResolvedValue({
+      deceased_profile_id: "profile-001",
+      profile_name: "妈妈",
+      created: true,
+    });
     importDataMock.mockResolvedValue({
       artifact_id: "artifact-123",
       file_hash: "hash-abc",
@@ -30,7 +38,7 @@ describe("Import page", () => {
     render(<Import />);
 
     fireEvent.change(screen.getByLabelText("逝者档案"), {
-      target: { value: "profile-001" },
+      target: { value: "妈妈" },
     });
     fireEvent.change(screen.getByLabelText("本地文件路径"), {
       target: { value: "/tmp/universal-chat.json" },
@@ -41,6 +49,9 @@ describe("Import page", () => {
     fireEvent.click(screen.getByRole("button", { name: "开始导入" }));
 
     await waitFor(() => {
+      expect(resolveProfileMock).toHaveBeenCalledWith({
+        profile_name: "妈妈",
+      });
       expect(importDataMock).toHaveBeenCalledWith({
         deceased_profile_id: "profile-001",
         file_path: "/tmp/universal-chat.json",
@@ -50,6 +61,7 @@ describe("Import page", () => {
         metadata: {
           source_adapter: "universal_chat_json",
           source_adapter_label: "Universal Chat JSON",
+          profile_name: "妈妈",
         },
       });
     });

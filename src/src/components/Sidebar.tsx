@@ -10,8 +10,8 @@ function Sidebar(): React.ReactElement {
     { path: "/timeline", label: "记忆时间线", icon: "🕐" },
     { path: "/query", label: "问答", icon: "💬" },
     { path: "/evidence", label: "证据卡片", icon: "🔍" },
-    { path: "/scope/create", label: "创建作用域", icon: "➕" },
-    { path: "/settings", label: "作用域管理", icon: "🛡️" },
+    { path: "/scope/create", label: "创建关系空间", icon: "➕" },
+    { path: "/settings", label: "关系空间管理", icon: "🛡️" },
     { path: "/safety", label: "安全设置", icon: "🔒" },
     { path: "/destroy", label: "数据销毁", icon: "🧨" },
   ];

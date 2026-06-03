@@ -49,6 +49,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             bridge::invoke_query,
             bridge::invoke_import,
+            bridge::invoke_profile_resolve,
             bridge::invoke_scope_create,
             bridge::invoke_scope_delete,
             bridge::invoke_scope_list,

@@ -19,7 +19,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from remnant_bridge.config import APP_DESCRIPTION, APP_NAME, APP_VERSION, HOST, PORT
 from remnant_bridge.middleware.audit import AuditLogMiddleware
 from remnant_bridge.middleware.auth import AuthMiddleware, EphemeralTokenManager
-from remnant_bridge.routes import data_api, evidence_api, import_api, query_api, safety_api, scope_api
+from remnant_bridge.routes import (
+    data_api,
+    evidence_api,
+    import_api,
+    profile_api,
+    query_api,
+    safety_api,
+    scope_api,
+)
 
 # 全局 Token 管理器
 token_manager = EphemeralTokenManager()
@@ -56,6 +64,7 @@ app.add_middleware(AuditLogMiddleware)
 # 注册路由
 app.include_router(import_api.router)
 app.include_router(query_api.router)
+app.include_router(profile_api.router)
 app.include_router(scope_api.router)
 app.include_router(evidence_api.router)
 app.include_router(safety_api.router)

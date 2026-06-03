@@ -32,6 +32,12 @@ pub struct ImportRequest {
     pub metadata: serde_json::Value,
 }
 
+/// Profile resolve request body — maps user-facing profile names to internal IDs.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProfileResolveRequest {
+    pub profile_name: String,
+}
+
 fn default_encoding() -> String {
     "utf-8".to_string()
 }
@@ -211,6 +217,45 @@ pub async fn invoke_import(
 
     if !status.is_success() {
         return Err(format!("Import failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Resolves a user-facing profile name to an internal deceased_profile ID.
+#[tauri::command]
+pub async fn invoke_profile_resolve(
+    state: State<'_, SidecarState>,
+    request: ProfileResolveRequest,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!("{}/api/v1/profile/resolve", base_url);
+
+    let response = client
+        .post(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| format!("Profile resolve request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Profile resolve failed ({}): {}", status, body));
     }
 
     let json: serde_json::Value =
