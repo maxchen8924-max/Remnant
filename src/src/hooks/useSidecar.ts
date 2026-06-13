@@ -85,6 +85,11 @@ interface DataDestroyRequest {
   confirm?: boolean;
 }
 
+/** Evidence trace inspection request parameters */
+interface EvidenceTraceRequest {
+  trace_id: string;
+}
+
 /**
  * Custom hook for communicating with the Python sidecar via Tauri IPC.
  *
@@ -342,6 +347,27 @@ function useSidecar() {
     []
   );
 
+  /** Inspect evidence for a retrieval trace */
+  const getEvidenceTrace = useCallback(
+    async (traceId: string): Promise<JsonValue> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await invoke<JsonValue>("invoke_evidence_trace", {
+          request: { trace_id: traceId },
+        });
+        return result;
+      } catch (e) {
+        const msg = String(e);
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
   /** Listen to SSE query streaming events */
   const listenQueryStream = useCallback(
     (
@@ -536,6 +562,7 @@ function useSidecar() {
     updateSafetyPolicy,
     getSafetyEvents,
     destroyData,
+    getEvidenceTrace,
     listenQueryStream,
     listScopes,
     getScopeDetail,
@@ -560,4 +587,5 @@ export type {
   SafetyPolicyUpdateRequest,
   SafetyEventsRequest,
   DataDestroyRequest,
+  EvidenceTraceRequest,
 };

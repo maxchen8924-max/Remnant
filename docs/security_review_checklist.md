@@ -5,6 +5,32 @@
 
 ---
 
+## v0.2 Owner / Status Matrix
+
+This matrix gives every threat an owner and current developer-alpha status.
+Detailed mitigation text below remains the source of truth. Status is scoped to
+the open-source preview and does not mean production certification.
+
+| Threat | Owner | v0.2 Status | Notes |
+| --- | --- | --- | --- |
+| T1 本地数据库泄露 | Storage / Security | Planned | SQLCipher and production key handling remain v1.0 work. |
+| T2 原始聊天记录泄露 | Import / Security | Partial | Trace evidence API redacts source paths in responses; persisted path redaction is still open. |
+| T3 Embedding 反推隐私 | Retrieval / Security | Planned | Embedding generation is not wired end to end yet. |
+| T4 未授权导入他人数据 | Consent / Import | Planned | Consent recording exists in schema; import enforcement is future work. |
+| T5 亲属之间权限冲突 | Scope / Retrieval | Partial | Scope-aware visibility and retrieval tests exist; broader API coverage remains needed. |
+| T6 A scope 污染 B scope | Scope / Retrieval | Partial | Visibility filtering exists; trace evidence now re-checks visible chunks before display. |
+| T7 模型编造逝者观点 | Retrieval / Safety | Partial | Query responses are retrieval summaries and avoid persona generation; LLM gating is future work. |
+| T8 用户过度依赖 | Safety | Partial | Safety policy primitives and tests exist; production UX escalation remains future work. |
+| T9 声音克隆滥用 | Voice / Safety | Disabled | Voice tables are schema-only and runtime synthesis remains disabled. |
+| T10 插件越权读取 | Plugin / Security | Not in preview | Plugin runtime is outside v0.2 scope. |
+| T11 本地 HTTP 服务被其他进程访问 | Sidecar / Desktop | Partial | Local token auth and sidecar smoke tests exist; process-signature checks are not implemented. |
+| T12 备份文件泄露 | Storage / Desktop | Planned | Backup/cloud-sync detection is future work. |
+| T13 日志泄露 | Runtime / Security | Partial | Token prefix logging was removed; broader PII log scanning and retention policy are still open. |
+| T14 恶意 Prompt Injection | Retrieval / Safety | Planned | Prompt-injection handling becomes relevant when LLM generation is wired. |
+| T15 用户要求系统伪造证据 | Retrieval / Safety | Partial | Evidence-first retrieval exists; claim-level generation and refusal gates remain future work. |
+
+---
+
 ## T1: 本地数据库泄露
 
 | 字段 | 内容 |

@@ -75,6 +75,12 @@ pub struct DataDestroyRequest {
     pub confirm: bool,
 }
 
+/// Evidence trace inspection request body.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EvidenceTraceRequest {
+    pub trace_id: String,
+}
+
 /// Safety policy get request body.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SafetyPolicyGetRequest {
@@ -412,6 +418,44 @@ pub async fn invoke_data_destroy(
 
     if !status.is_success() {
         return Err(format!("Data destroy failed ({}): {}", status, body));
+    }
+
+    let json: serde_json::Value =
+        serde_json::from_str(&body).unwrap_or(serde_json::json!({ "raw": body }));
+
+    Ok(json)
+}
+
+/// Gets trace evidence from the Python sidecar.
+#[tauri::command]
+pub async fn invoke_evidence_trace(
+    state: State<'_, SidecarState>,
+    request: EvidenceTraceRequest,
+) -> Result<serde_json::Value, String> {
+    let manager = state.lock().await;
+    let base_url = manager.get_base_url();
+    let token = manager.get_auth_token().to_string();
+    let client = manager.get_http_client().clone();
+    drop(manager);
+
+    let url = format!("{}/api/v1/evidence/trace/{}", base_url, request.trace_id);
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Evidence trace request failed: {}", e))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    if !status.is_success() {
+        return Err(format!("Evidence trace failed ({}): {}", status, body));
     }
 
     let json: serde_json::Value =

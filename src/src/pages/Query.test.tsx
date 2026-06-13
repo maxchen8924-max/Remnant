@@ -78,6 +78,10 @@ describe("Query page", () => {
     });
 
     expect(await screen.findByText("trace-123")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "检查证据" })).toHaveAttribute(
+      "href",
+      "/evidence?trace=trace-123"
+    );
     expect(screen.getByText(/Evidence-backed memory summary/)).toBeInTheDocument();
     expect(within(screen.getByLabelText("Evidence rows")).getByText(/春天到了/)).toBeInTheDocument();
     expect(screen.getByText("42 ms")).toBeInTheDocument();

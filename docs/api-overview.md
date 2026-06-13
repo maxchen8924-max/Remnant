@@ -70,6 +70,7 @@ manually as shown above.
 | `POST` | `/api/v1/profile/resolve` | Resolve or create a user-facing deceased profile name. |
 | `POST` | `/api/v1/import` | Import a source file through the ETL pipeline. |
 | `POST` | `/api/v1/query` | Run scoped retrieval and return either SSE or a JSON response. |
+| `GET` | `/api/v1/evidence/trace/{trace_id}` | Inspect visible evidence chunks behind a retrieval trace. |
 | `POST` | `/api/v1/scope/create` | Create a relationship space. |
 | `POST` | `/api/v1/scope/delete` | Delete a relationship space by deletion type. |
 | `POST` | `/api/v1/scope/soft-delete` | Soft-delete a relationship space. |
@@ -217,6 +218,53 @@ Response:
 
 In this preview, querying exercises retrieval and traceability. Full answer
 generation is still a future integration point.
+
+### Inspect Trace Evidence
+
+Use the `retrieval_trace_id` returned by `/api/v1/query`:
+
+```bash
+curl -s http://127.0.0.1:18731/api/v1/evidence/trace/trace-uuid \
+  -H "Authorization: Bearer dev-token"
+```
+
+Response:
+
+```json
+{
+  "trace_id": "trace-uuid",
+  "scope_id": "scope-uuid",
+  "query_text": "What did she say about moving to New York?",
+  "duration_ms": 12,
+  "result_counts": {
+    "fts": 3,
+    "vector": 0,
+    "reranked": 3
+  },
+  "evidence_count": 1,
+  "evidences": [
+    {
+      "rank": 1,
+      "chunk_id": "chunk-uuid",
+      "chunk_type": "conversation_segment",
+      "source": "keyword_fallback",
+      "combined_score": 0.35,
+      "content": "Evidence chunk text...",
+      "source_artifact": {
+        "artifact_id": "artifact-uuid",
+        "file_type": "universal_chat_json",
+        "file_hash": "sha256...",
+        "source_path_status": "redacted"
+      },
+      "spans": []
+    }
+  ]
+}
+```
+
+The evidence inspector does not return the local source file path. It returns
+the source artifact type/hash and `source_path_status` so the frontend can show
+that the path was intentionally redacted.
 
 ### Safety Evaluation
 

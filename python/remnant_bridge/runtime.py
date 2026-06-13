@@ -9,6 +9,7 @@ logic.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sqlite3
 import time
@@ -204,6 +205,50 @@ def destroy_scope_data(
     }
 
 
+def get_evidence_trace(
+    conn: sqlite3.Connection,
+    trace_id: str,
+) -> dict[str, Any] | None:
+    """Return an evidence inspection payload for a retrieval trace.
+
+    This is read-only and intentionally redacts local source file paths. The
+    trace stores only retrieval summaries, so this helper enriches the reranked
+    chunk IDs with active chunks, source artifact metadata, and span provenance.
+    """
+    trace_row = conn.execute(
+        "SELECT * FROM retrieval_trace WHERE id = ?",
+        (trace_id,),
+    ).fetchone()
+    if trace_row is None:
+        return None
+
+    trace = dict(trace_row)
+    scope_id = str(trace["relationship_scope_id"])
+    reranked_results = _parse_json_list(trace.get("reranked_results"))
+    visible_chunk_ids = _visible_chunk_ids(conn, scope_id)
+    evidence_rows = _load_trace_evidence_rows(
+        conn=conn,
+        reranked_results=reranked_results,
+        visible_chunk_ids=visible_chunk_ids,
+    )
+
+    return {
+        "trace_id": trace["id"],
+        "scope_id": scope_id,
+        "query_text": trace["query_text"],
+        "query_embedding_model": trace.get("query_embedding_model"),
+        "duration_ms": trace.get("total_duration_ms"),
+        "created_at": trace.get("created_at"),
+        "result_counts": {
+            "fts": len(_parse_json_list(trace.get("fts_results"))),
+            "vector": len(_parse_json_list(trace.get("vector_results"))),
+            "reranked": len(reranked_results),
+        },
+        "evidence_count": len(evidence_rows),
+        "evidences": evidence_rows,
+    }
+
+
 def _scope_exists(conn: sqlite3.Connection, scope_id: str) -> bool:
     row = conn.execute(
         "SELECT id FROM relationship_scope WHERE id = ? AND deleted_at IS NULL",
@@ -262,3 +307,123 @@ def _clip_whitespace(text: str, max_chars: int) -> str:
     if len(compact) <= max_chars:
         return compact
     return compact[: max_chars - 1].rstrip() + "..."
+
+
+def _parse_json_list(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, str) or not value:
+        return []
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [item for item in parsed if isinstance(item, dict)]
+
+
+def _visible_chunk_ids(conn: sqlite3.Connection, scope_id: str) -> set[str]:
+    from remnant_store.chunk_visibility import get_visible_chunk_ids
+
+    return set(get_visible_chunk_ids(conn, scope_id))
+
+
+def _load_trace_evidence_rows(
+    conn: sqlite3.Connection,
+    reranked_results: list[dict[str, Any]],
+    visible_chunk_ids: set[str],
+) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for rank, summary in enumerate(reranked_results, start=1):
+        chunk_id = _summary_chunk_id(summary)
+        if not chunk_id or chunk_id in seen or chunk_id not in visible_chunk_ids:
+            continue
+
+        chunk_row = conn.execute(
+            """SELECT mc.id, mc.source_artifact_id, mc.relationship_scope_id,
+                      mc.chunk_type, mc.content, mc.token_count,
+                      mc.time_range_start, mc.time_range_end,
+                      mc.message_count, mc.speaker_count, mc.status,
+                      sa.file_type, sa.file_hash, sa.message_count AS artifact_message_count,
+                      sa.parse_status
+               FROM memory_chunk mc
+               JOIN source_artifact sa ON sa.id = mc.source_artifact_id
+               WHERE mc.id = ?
+                 AND mc.status = 'ACTIVE'
+                 AND mc.deleted_at IS NULL
+                 AND sa.deleted_at IS NULL""",
+            (chunk_id,),
+        ).fetchone()
+        if chunk_row is None:
+            continue
+
+        chunk = dict(chunk_row)
+        evidence.append(
+            {
+                "rank": rank,
+                "chunk_id": chunk["id"],
+                "chunk_type": chunk["chunk_type"],
+                "source": summary.get("source", ""),
+                "fts_score": summary.get("fts_score"),
+                "vector_score": summary.get("vector_score"),
+                "combined_score": summary.get("combined_score"),
+                "content": chunk["content"],
+                "time_range_start": chunk.get("time_range_start"),
+                "time_range_end": chunk.get("time_range_end"),
+                "message_count": chunk.get("message_count"),
+                "speaker_count": chunk.get("speaker_count"),
+                "source_artifact": {
+                    "artifact_id": chunk["source_artifact_id"],
+                    "file_type": chunk["file_type"],
+                    "file_hash": chunk["file_hash"],
+                    "message_count": chunk.get("artifact_message_count"),
+                    "parse_status": chunk.get("parse_status"),
+                    "source_path_status": "redacted",
+                },
+                "spans": _load_chunk_spans(conn, chunk["id"], chunk["content"]),
+            }
+        )
+        seen.add(chunk_id)
+
+    return evidence
+
+
+def _summary_chunk_id(summary: dict[str, Any]) -> str:
+    value = summary.get("chunk_id") or summary.get("id")
+    return value if isinstance(value, str) else ""
+
+
+def _load_chunk_spans(
+    conn: sqlite3.Connection,
+    chunk_id: str,
+    chunk_content: str,
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """SELECT span.id, span.normalized_message_id, span.char_start, span.char_end,
+                  span.source_speaker, span.source_timestamp,
+                  nm.speaker_normalized, nm.content AS normalized_content
+           FROM memory_chunk_span span
+           LEFT JOIN normalized_message nm ON nm.id = span.normalized_message_id
+           WHERE span.chunk_id = ?
+           ORDER BY span.char_start ASC""",
+        (chunk_id,),
+    ).fetchall()
+    spans: list[dict[str, Any]] = []
+    for row in rows:
+        span = dict(row)
+        start = max(int(span["char_start"]), 0)
+        end = max(int(span["char_end"]), start)
+        spans.append(
+            {
+                "span_id": span["id"],
+                "normalized_message_id": span["normalized_message_id"],
+                "char_start": start,
+                "char_end": end,
+                "source_speaker": span["source_speaker"],
+                "source_timestamp": span.get("source_timestamp"),
+                "speaker_normalized": span.get("speaker_normalized"),
+                "excerpt": chunk_content[start:end],
+            }
+        )
+    return spans

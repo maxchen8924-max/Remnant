@@ -54,12 +54,28 @@ Working or partially working:
 - bridge runtime helpers for import, query, and scoped deletion
 - Tauri sidecar process management scaffold
 
+## v0.2 Developer Alpha Progress
+
+Implemented developer-alpha capabilities:
+
+- Trace-based evidence inspection API:
+  `GET /api/v1/evidence/trace/{trace_id}` enriches a retrieval trace with
+  visible chunks, source artifact metadata, and span provenance.
+- Evidence inspection redacts local `source_artifact.file_path` from API
+  responses and returns `source_path_status: "redacted"` instead.
+- The frontend query workflow links returned `retrieval_trace_id` values to the
+  evidence inspector.
+- The frontend evidence page can load a trace locally and display trace
+  metadata, source artifact type/hash, scores, evidence chunks, and spans.
+- Regression tests cover trace evidence enrichment, the FastAPI evidence route,
+  and the React evidence inspection workflow.
+
 Not production-ready:
 
 - local LLM generation
 - embedding generation and indexing workflow
-- polished frontend workflows
-- complete security review
+- full embedding-backed retrieval workflow
+- complete security review and external threat model
 - encrypted production storage
 - end-to-end packaged desktop distribution
 - voice synthesis runtime
@@ -143,8 +159,17 @@ v0.2 developer alpha:
 - Sidecar smoke test passes in CI on Python 3.11 and 3.12.
 - Import supports at least one real sample fixture end to end.
 - Query returns evidence summaries with retrieval trace IDs.
-- Frontend can import, query, and inspect evidence locally.
-- Security checklist has owners and status for each item.
+- Frontend can import, query, and inspect evidence locally through trace IDs.
+- Security checklist has owners and status for each threat item.
+
+Remaining v0.2 hardening:
+
+- Add duplicate import behavior around `source_artifact.file_hash`.
+- Decide whether persisted `source_artifact.file_path` should be redacted on
+  import or retained behind an explicit privacy setting.
+- Turn the highest-risk security checklist items into automated tests.
+- Add one documented end-to-end command that imports the sample fixture, queries
+  it, and opens the trace evidence payload.
 
 v0.3 research alpha:
 

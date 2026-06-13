@@ -194,6 +194,14 @@ function Query(): React.ReactElement {
                   <span className="query-meta-value">
                     {result.retrieval_trace_id || "无 trace"}
                   </span>
+                  {result.retrieval_trace_id && (
+                    <a
+                      className="query-trace-link"
+                      href={`/evidence?trace=${encodeURIComponent(result.retrieval_trace_id)}`}
+                    >
+                      检查证据
+                    </a>
+                  )}
                 </div>
                 <div>
                   <span className="query-meta-label">Latency</span>

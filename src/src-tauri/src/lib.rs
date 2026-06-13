@@ -63,6 +63,7 @@ pub fn run() {
             bridge::invoke_safety_policy_update,
             bridge::invoke_safety_events,
             bridge::invoke_data_destroy,
+            bridge::invoke_evidence_trace,
             bridge::invoke_health_check,
             bridge::invoke_sidecar_status,
         ])

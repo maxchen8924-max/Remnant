@@ -172,3 +172,48 @@ def test_run_import_pipeline_returns_real_file_hash(
     assert response["artifact_id"] == "artifact-1"
     assert response["file_hash"] == hashlib.sha256(sample.read_bytes()).hexdigest()
     assert response["parse_status"] == "PARSED"
+
+
+def test_get_evidence_trace_enriches_reranked_chunks(
+    conn: sqlite3.Connection,
+) -> None:
+    from remnant_bridge.runtime import get_evidence_trace
+    from remnant_core.trace import record_retrieval_trace
+
+    _seed_scope_with_chunk(conn)
+    trace_id = record_retrieval_trace(
+        conn=conn,
+        scope_id="scope-a",
+        query_text="tea",
+        fts_results=[],
+        vector_results=[],
+        reranked_results=[
+            {
+                "id": "chunk-1",
+                "source": "keyword_fallback",
+                "combined_score": 0.35,
+            }
+        ],
+        total_duration_ms=12,
+    )
+
+    result = get_evidence_trace(conn, trace_id)
+
+    assert result is not None
+    assert result["trace_id"] == trace_id
+    assert result["scope_id"] == "scope-a"
+    assert result["query_text"] == "tea"
+    assert result["duration_ms"] == 12
+    assert result["evidence_count"] == 1
+
+    evidence = result["evidences"][0]
+    assert evidence["chunk_id"] == "chunk-1"
+    assert evidence["rank"] == 1
+    assert evidence["source"] == "keyword_fallback"
+    assert evidence["combined_score"] == 0.35
+    assert evidence["content"] == "dad liked tea every afternoon"
+    assert evidence["source_artifact"]["artifact_id"] == "artifact-1"
+    assert evidence["source_artifact"]["file_type"] == "wechat_txt"
+    assert evidence["source_artifact"]["file_hash"] == "hash-1"
+    assert evidence["source_artifact"]["source_path_status"] == "redacted"
+    assert "file_path" not in evidence["source_artifact"]
